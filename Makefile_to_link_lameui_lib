@@ -1,0 +1,119 @@
+#####################################################################
+# Created by Avra Mitra											    #
+# Created on Apr 30, 2020										    #
+# Last modified on May 2, 2020										#
+#####################################################################
+
+# Project name
+PROJ_NAME=Sim_LameUI
+# Executable name
+TARGET=Sim
+
+######################################################################
+#                         SETUP SOURCES                              #
+######################################################################
+
+#------------ [SOURCE DIRECTORIES] -----------------------------------
+# User source directory
+SRCDIR	 =  src/
+# Objects directory
+OBJDIR		 =  obj/
+# Target directory
+BINDIR		 =  bin/
+#--------------------------------------------------------------------
+
+#------------ [C/CPP SOURCE FILES] ----------------------------------
+# User source files (c/cpp)
+SRCS   	 =  main.c
+#--------------------------------------------------------------------
+
+#------------ [COMPILED OBJECT FILES] -------------------------------
+# Object file names (source_name.o)
+OBJ			 =  $(SRCS:.c=.o)	
+#--------------------------------------------------------------------
+
+#------------ [INCLUDE DIRECTORIES] ---------------------------------
+# Includes (headers)
+INCLS		 =  -Iinc
+#--------------------------------------------------------------------
+
+#------------ [USED LIBRARIES] --------------------------------------
+# Libraries used for linking
+LIBS  	 	 =  -lGL
+LIBS  		+=  -lGLU
+LIBS  		+=  -lglut
+LIBS  		+=  -lm
+
+# LameUI library (liblameui.a)
+LIBS		+=  -llameui
+
+# Library path (of liblameui.a)
+LIBPATH		 =  -LLameUI
+#--------------------------------------------------------------------
+
+#------------ [DON'T EDIT BELOW PART] -------------------------------
+# Add the directory with the file names
+OBJ_MAIN	 =  $(addprefix $(OBJDIR),$(OBJ))
+TARGET_MAIN	 =  $(addprefix $(BINDIR),$(TARGET))
+#--------------------------------------------------------------------
+
+######################################################################
+#                         SETUP TOOLS                                #
+######################################################################
+
+# Cross compiler information
+CC			 =  gcc
+DEBUG		 =  gdb
+
+# Compiler flags used to create .o files from .c/cpp files
+CFLAGS  	 =   -g
+CFLAGS  	+=  -O0
+CFLAGS  	+=  -Wall -Wextra -Warray-bounds
+
+
+######################################################################
+#                         SETUP TARGETS                              #
+######################################################################
+
+# Rule to make all
+.PHONY: all
+all: make_lameui $(TARGET_MAIN)
+
+
+
+# Rule to build lameui library using its own makefile
+.PHONY: make_lameui
+make_lameui:
+		cd LameUI && $(MAKE) all
+
+
+
+# Rule to clean user application (.o and executable) and LameUI (.a, .o)
+.PHONY: clean
+clean: 
+		@echo [Cleaning LameUI library...]
+		cd LameUI && $(MAKE) clean
+		@echo [Cleaning user application...]
+		rm -f $(OBJ_MAIN) $(TARGET_MAIN)
+
+
+
+# Rule to make object file by compiling source file
+$(OBJDIR)%.o: $(SRCDIR)%.c
+		@echo [Compiling...]
+		$(CC) -c -o $@ $< $(INCLS) $(CFLAGS)
+		
+
+
+# Rule to make target executable by linking object files and libraries
+$(TARGET_MAIN): $(OBJ_MAIN)
+		@echo [Linking...]
+		$(CC) -o $(TARGET_MAIN) $(OBJ_MAIN) $(LIBPATH) $(LIBS)
+
+			
+
+# Rule to fireup gdb for debugging the executable binary
+.PHONY: debug				
+debug:
+		$(DEBUG) $(TARGET_MAIN)
+
