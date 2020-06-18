@@ -1,0 +1,16 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "intelliSenseMode": "gcc-x64",
+            "includePath": [
+                "FontsEmbedded",
+                "inc",
+                "LameUI/inc",
+                "."
+                
+            ]
+        }
+    ],
+    "version": 4
+}

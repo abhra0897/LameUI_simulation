@@ -4,9 +4,9 @@
 #include <GL/glut.h>
 #include <math.h>
 #include <inttypes.h>
-#include "../LameUI/inc/lame_ui.h"
-#include "../FontsEmbedded/font_microsoft_16.h"
-#include "../FontsEmbedded/font_ubuntu_48.h"
+#include "lame_ui.h"
+#include "font_microsoft_16.h"
+#include "font_ubuntu_48.h"
 
 // Color definitions
 #define ILI_COLOR_BLACK       0x0000  ///<   0,   0,   0
@@ -171,7 +171,7 @@ int main (int argc, char** argv)
 
     //----------------------------------------------------------
 	//creating display driver variable for lame_ui
-	tLuiDispDrv my_display_driver = lui_disp_drv_create();
+	tLuiDispDrv my_display_driver = lui_dispdrv_create();
 
 	//pass which functions will be called back by lame_ui for drawing pixel/pixels
 	my_display_driver.draw_pixel_cb = my_set_pixel_opengl;
@@ -183,12 +183,12 @@ int main (int argc, char** argv)
 	my_display_driver.display_vert_res = 320;
 
 	//register the display driver with lame_ui
-	lui_disp_drv_register(&my_display_driver);
+	lui_dispdrv_register(&my_display_driver);
 
 	//----------------------------------------------------------
 	//create and add scenes
 	tLuiScene scn_one = lui_scene_create();
-	lui_add_scene(&scn_one);
+	lui_scene_add(&scn_one);
 
 
 	//----------------------------------------------------------
@@ -204,10 +204,12 @@ int main (int argc, char** argv)
 	lbl1.text = "This is a LABEL\nBelow is a LINE CHART";
 	lbl1.x = 0;
 	lbl1.y = 0;
+	lbl1.width = 50;
+	lbl1.height = 50;
 	lbl1.color = ILI_COLOR_GREEN;
 
 	//Add this label to a scene (scene_scnd)
-	lui_add_label_to_scene(&lbl1, &scn_one);
+	lui_label_add_to_scene(&lbl1, &scn_one);
 
 
 	//----------------------------------------------------------
@@ -221,20 +223,21 @@ int main (int argc, char** argv)
 
 	//----------------------------------------------------------
 	//create a line chart with above data
-	tLuiLineChart grph = lui_line_chart_create();
+	tLuiLineChart grph = lui_linechart_create();
 	grph.data.source = (double *)points;
 	grph.x = 60;
 	grph.y = 50;
 	grph.data.points = 10;
 	grph.width = 110;
 	grph.height = 200;
-	grph.grid.vert_count = 4;
+	grph.grid.vert_count = 3;
+	grph.grid.hor_count = 4;
+	grph.grid.color = 0;
 	grph.bg_color = scn_one.background.color;
 	grph.line.color = ILI_COLOR_RED;
-	grph.line.width = 3;
 
 	// Add this line chart to a scene
-	lui_add_line_chart_to_scene(&grph, &scn_one);
+	lui_linechart_add_to_scene(&grph, &scn_one);
 
 	//----------------------------------------------------------
 	//create a button
@@ -249,7 +252,7 @@ int main (int argc, char** argv)
 	btn.color = ILI_COLOR_CYAN;
 
 	// Add the button to a scene
-	lui_add_button_to_scene(&btn, &scn_one);
+	lui_button_add_to_scene(&btn, &scn_one);
 
 	// Finally, render the scene
 	lui_scene_render(&scn_one);
