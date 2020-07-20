@@ -234,7 +234,7 @@ int main (int argc, char** argv)
 	grph.grid.hor_count = 4;
 	grph.grid.color = 0;
 	grph.bg_color = scn_one.background.color;
-	grph.line.color = ILI_COLOR_RED;
+	grph.color = ILI_COLOR_RED;
 
 	// Add this line chart to a scene
 	lui_linechart_add_to_scene(&grph, &scn_one);
