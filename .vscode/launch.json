@@ -3,9 +3,8 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
 
-    // Calls build task (in tasks.jsonfirst to build the project.
+    // Calls build task (in tasks.json) first to build the project.
     // that task uses the makefile in proj dir to compile and link
-    "cwd": "${workspaceFolder}",
     "version": "0.2.0",
     "configurations": [
         {
@@ -15,6 +14,7 @@
             "program": "./bin/Sim",
             "args": [],
             "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",

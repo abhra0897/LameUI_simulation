@@ -3,13 +3,14 @@
         {
             "name": "Linux",
             "intelliSenseMode": "gcc-x64",
+            "compilerPath": "/usr/bin/gcc",
             "includePath": [
                 "FontsEmbedded",
                 "inc",
                 "LameUI/inc",
-                "."
-                
-            ]
+                "."       
+            ],
+            "cStandard": "c11"
         }
     ],
     "version": 4

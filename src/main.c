@@ -7,6 +7,7 @@
 #include "lame_ui.h"
 #include "font_microsoft_16.h"
 #include "font_ubuntu_48.h"
+#include <time.h>
 
 // Color definitions
 #define ILI_COLOR_BLACK       0x0000  ///<   0,   0,   0
@@ -35,13 +36,19 @@
 #define VERT_RES 320
 
 int g = 90;
+tLuiTouchInputData g_input;
+tLuiScene g_scn_one;
 
-void my_input_read_opengl (tLuiInputDev *input);
+void my_button_event_handler(tLuiButtonState state);
+void my_input_read_opengl (tLuiTouchInputData *input);
 void gl_init();
 void my_set_pixel_opengl (uint16_t x, uint16_t y, uint16_t color);
 void my_set_pixel_area_opengl (uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t color);
+void myDisplay();
 
-tLuiLabel lbl1;;
+
+
+//tLuiLabel lbl1;
 // Initialize OpenGL
 void gl_init()
 {
@@ -59,18 +66,26 @@ void gl_init()
 
     // Clear everything
 	glClear(GL_COLOR_BUFFER_BIT);
+
+	glFlush();
 }
+
 
 
 // Read input from an input device
 // It should take device position (x, y) and a button's status
-void my_input_read_opengl (tLuiInputDev *input)
+void my_input_read_opengl (tLuiTouchInputData *input)
 {
-	/* NOT IMPLEMENTED (SAMPLE BELOW) */
+	//glutPassiveMotionFunc(myMouse);
+	input->is_pressed = g_input.is_pressed;
+	input->y = g_input.y;
+	input->x = g_input.x;
+}
 
-	//input->is_pressed = read_indput_btn_status();
-	//input->position.y = read_input_x_pos();
-	//input->position.x = read_input_y_pos();
+
+void my_button_event_handler(tLuiButtonState state)
+{
+	printf("\nState Change occured. State: %d", state);
 }
 
 
@@ -162,54 +177,42 @@ int main (int argc, char** argv)
     glutCreateWindow("LameUI Simulator");
 
     // Initialize opengl
-    gl_init();
+    gl_init();	
 
-
-    /*###################################################################################
+	/*###################################################################################
      #		Starts LameUI Based Code. The Below Part Is Hardware/Platform Agnostic		#
      ###################################################################################*/
+
 
     //----------------------------------------------------------
 	//creating display driver variable for lame_ui
 	tLuiDispDrv my_display_driver = lui_dispdrv_create();
-
-	//pass which functions will be called back by lame_ui for drawing pixel/pixels
-	my_display_driver.draw_pixel_cb = my_set_pixel_opengl;
-	my_display_driver.draw_pixels_area_cb = my_set_pixel_area_opengl;
-	my_display_driver.read_input_cb = my_input_read_opengl;
-
-	//pass the resolution of your display
-	my_display_driver.display_hor_res = 240;
-	my_display_driver.display_vert_res = 320;
-
-	//register the display driver with lame_ui
 	lui_dispdrv_register(&my_display_driver);
+	lui_dispdrv_set_resolution(240, 320);
+	lui_dispdrv_set_draw_pixel_cb(my_set_pixel_opengl);
+	lui_dispdrv_set_draw_pixels_area_cb(my_set_pixel_area_opengl);
+
+	tLuiTouchInputDev my_input_device = lui_touch_inputdev_create();
+	lui_touch_inputdev_register(&my_input_device);
+	lui_touch_inputdev_set_read_input_cb(my_input_read_opengl);	
 
 	//----------------------------------------------------------
 	//create and add scenes
-	tLuiScene scn_one = lui_scene_create();
-	lui_scene_add(&scn_one);
+	tLuiScene g_scn_one = lui_scene_create();
+	lui_scene_add(&g_scn_one);
+	lui_scene_set_bg_color(ILI_COLOR_BLUE, &g_scn_one);
+	lui_scene_set_font(&font_microsoft_16, &g_scn_one);
 
-
-	//----------------------------------------------------------
-	//Set a bg color and global font for scn_one (scn_one)
-	scn_one.font = &font_microsoft_16;
-	scn_one.background.color = 0x0006;
-
-
+	
 	//----------------------------------------------------------
 	//create a label
-	//tLuiLabel lbl1 = lui_label_create();
-	lbl1 = lui_label_create();
-	lbl1.text = "This is a LABEL\nBelow is a LINE CHART";
-	lbl1.x = 0;
-	lbl1.y = 0;
-	lbl1.width = 50;
-	lbl1.height = 50;
-	lbl1.color = ILI_COLOR_GREEN;
+	tLuiLabel lbl1 = lui_label_create();
+	lui_label_add_to_scene(&lbl1, &g_scn_one);
+	lui_label_set_text("This is a label hehe", &lbl1);
+	lui_label_set_position(0, 0, &lbl1);
+	lui_label_set_area(100, 50, &lbl1);
+	lui_label_set_colors(ILI_COLOR_GREEN, ILI_COLOR_BLACK, &lbl1);
 
-	//Add this label to a scene (scene_scnd)
-	lui_label_add_to_scene(&lbl1, &scn_one);
 
 
 	//----------------------------------------------------------
@@ -224,45 +227,59 @@ int main (int argc, char** argv)
 	//----------------------------------------------------------
 	//create a line chart with above data
 	tLuiLineChart grph = lui_linechart_create();
-	grph.data.source = (double *)points;
-	grph.x = 60;
-	grph.y = 50;
-	grph.data.points = 10;
-	grph.width = 110;
-	grph.height = 200;
-	grph.grid.vert_count = 3;
-	grph.grid.hor_count = 4;
-	grph.grid.color = 0;
-	grph.bg_color = scn_one.background.color;
-	grph.color = ILI_COLOR_RED;
+	lui_linechart_add_to_scene(&grph, &g_scn_one);
+	lui_linechart_set_data_source((double *)&points, 10, &grph);
+	lui_linechart_set_position(60, 50, &grph);
+	lui_linechart_set_area(110, 200, &grph);
+	lui_linechart_set_grid(ILI_COLOR_BLACK, 4, 3, &grph);
+	lui_linechart_set_colors(ILI_COLOR_RED, ILI_COLOR_BLUE, &grph);
 
-	// Add this line chart to a scene
-	lui_linechart_add_to_scene(&grph, &scn_one);
+
 
 	//----------------------------------------------------------
 	//create a button
 	tLuiButton btn = lui_button_create();
-	btn.x = 80;
-	btn.y = 280;
-	btn.width = 80;
-	btn.height = 30;
-	btn.label.text = "Button";
-	btn.label.font = &font_microsoft_16;
-	btn.label.color = ILI_COLOR_MAROON;
-	btn.color = ILI_COLOR_CYAN;
+	lui_button_add_to_scene(&btn, &g_scn_one);
+	lui_button_set_position(80, 280, &btn);
+	lui_button_set_area(80, 30, &btn);
+	lui_button_set_label_text("Button", &btn);
+	lui_button_set_label_font(&font_microsoft_16, &btn);
+	lui_button_set_label_color(ILI_COLOR_MAROON, &btn);
+	lui_button_set_colors(ILI_COLOR_CYAN, ILI_COLOR_GREEN, ILI_COLOR_YELLOW, &btn);
+	lui_button_set_state_change_cb(my_button_event_handler, &btn);
 
-	// Add the button to a scene
-	lui_button_add_to_scene(&btn, &scn_one);
+	clock_t start; 
+	start = clock();
+	//Finally, render the scene
+	g_input.x = 80;
+	g_input.y = 282;
+	g_input.is_pressed = 1;
+	uint16_t orig_x = g_input.x;
+	while(1)
+	{
+		if (clock() - start > (clock_t)10000)
+		{
+			start = clock();
+			
+			lui_scene_render(&g_scn_one);
 
-	// Finally, render the scene
-	lui_scene_render(&scn_one);
-	lui_scene_render(&scn_one);
-	//lui_scene_render(&scn_one);
+			g_input.is_pressed = (start >> 18) & 1;
+			g_input.x = (start >> 19) & 1 ? orig_x : 10; // if random == 1, position is on button else position is 10
+		}
+		
+	}
 
-    while(1)
-    {
-    	//lui_scene_render(&scn_one);
-    }
+	// glutPassiveMotionFunc(myMouse);
+	// glutDisplayFunc(myDisplay);
+	// glutMainLoop();
 
     return 0;
+}
+
+
+void myDisplay()
+{
+	lui_scene_render(&g_scn_one);
+	// Flush drawing commands
+    glFlush();
 }
