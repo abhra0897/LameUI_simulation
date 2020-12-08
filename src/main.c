@@ -1,5 +1,6 @@
 
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include <GL/glut.h>
 #include <math.h>
@@ -39,7 +40,7 @@ int g = 90;
 tLuiTouchInputData g_input;
 tLuiScene g_scn_one;
 
-void my_button_event_handler(tLuiButtonState state);
+void my_button_event_handler(tLuiEvent event);
 void my_input_read_opengl (tLuiTouchInputData *input);
 void gl_init();
 void my_set_pixel_opengl (uint16_t x, uint16_t y, uint16_t color);
@@ -83,9 +84,34 @@ void my_input_read_opengl (tLuiTouchInputData *input)
 }
 
 
-void my_button_event_handler(tLuiButtonState state)
+void my_button_event_handler(tLuiEvent event)
 {
-	printf("\nState Change occured. State: %d", state);
+	char event_name[30] = {0};
+	//printf("\nState Change occured. Event ID: %d", event);
+	switch (event)
+	{
+	case LUI_EVENT_NONE:
+		strcat(event_name, "EVENT NONE");
+		break;
+	case LUI_EVENT_SELECTED:
+		strcat(event_name, "EVENT SELECTED");
+		break;
+	case LUI_EVENT_SELECTION_LOST:
+		strcat(event_name, "EVENT SELECTION LOST");
+		break;
+	case LUI_EVENT_PRESSED:
+		strcat(event_name, "EVENT PRESSED");
+		break;
+	case LUI_EVENT_RELEASED:
+		strcat(event_name, "EVENT RELEASED");
+		break;		
+	case LUI_EVENT_ENTERED:
+		strcat(event_name, "EVENT ENTERED");
+		break;
+	default:
+		break;
+	}
+	//printf(" Event Name: %s", event_name);
 }
 
 
@@ -207,7 +233,7 @@ int main (int argc, char** argv)
 	//----------------------------------------------------------
 	//create a label
 	tLuiLabel lbl1 = lui_label_create();
-	lui_label_add_to_scene(&lbl1, &g_scn_one);
+	//lui_label_add_to_scene(&lbl1, &g_scn_one);
 	lui_label_set_text("This is a label hehe", &lbl1);
 	lui_label_set_position(0, 0, &lbl1);
 	lui_label_set_area(100, 50, &lbl1);
@@ -227,7 +253,7 @@ int main (int argc, char** argv)
 	//----------------------------------------------------------
 	//create a line chart with above data
 	tLuiLineChart grph = lui_linechart_create();
-	lui_linechart_add_to_scene(&grph, &g_scn_one);
+	//lui_linechart_add_to_scene(&grph, &g_scn_one);
 	lui_linechart_set_data_source((double *)&points, 10, &grph);
 	lui_linechart_set_position(60, 50, &grph);
 	lui_linechart_set_area(110, 200, &grph);
@@ -239,14 +265,19 @@ int main (int argc, char** argv)
 	//----------------------------------------------------------
 	//create a button
 	tLuiButton btn = lui_button_create();
-	lui_button_add_to_scene(&btn, &g_scn_one);
+	//lui_button_add_to_scene(&btn, &g_scn_one);
 	lui_button_set_position(80, 280, &btn);
 	lui_button_set_area(80, 30, &btn);
 	lui_button_set_label_text("Button", &btn);
 	lui_button_set_label_font(&font_microsoft_16, &btn);
 	lui_button_set_label_color(ILI_COLOR_MAROON, &btn);
 	lui_button_set_colors(ILI_COLOR_CYAN, ILI_COLOR_GREEN, ILI_COLOR_YELLOW, &btn);
-	lui_button_set_state_change_cb(my_button_event_handler, &btn);
+	lui_button_set_event_cb(my_button_event_handler, &btn);
+
+	lui_scene_render(&g_scn_one);
+
+	tLuiSwitch swtch = lui_switch_create();
+	lui_switch_draw(&swtch);
 
 	clock_t start; 
 	start = clock();
@@ -255,23 +286,23 @@ int main (int argc, char** argv)
 	g_input.y = 282;
 	g_input.is_pressed = 1;
 	uint16_t orig_x = g_input.x;
-	while(1)
-	{
-		if (clock() - start > (clock_t)10000)
-		{
-			start = clock();
+	// while(1)
+	// {
+	// 	if (clock() - start > (clock_t)500000)
+	// 	{
+	// 		start = clock();
 			
-			lui_scene_render(&g_scn_one);
+	// 		//lui_scene_render(&g_scn_one);
 
-			g_input.is_pressed = (start >> 18) & 1;
-			g_input.x = (start >> 19) & 1 ? orig_x : 10; // if random == 1, position is on button else position is 10
-		}
+	// 		g_input.is_pressed = (start >> 18) & 1;
+	// 		g_input.x = (start >> 19) & 1 ? orig_x : 10; // if random == 1, position is on button else position is 10
+	// 	}
 		
-	}
+	// }
 
 	// glutPassiveMotionFunc(myMouse);
 	// glutDisplayFunc(myDisplay);
-	// glutMainLoop();
+	 glutMainLoop();
 
     return 0;
 }
