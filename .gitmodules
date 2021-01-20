@@ -1,3 +1,4 @@
 [submodule "LameUI"]
 	path = LameUI
-	url = https://github.com/abhra0897/LameUI.git
+	url = https://github.com/abhra0897/LameUI
+	branch = development

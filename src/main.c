@@ -40,7 +40,7 @@ int g = 90;
 tLuiTouchInputData g_input;
 tLuiScene g_scn_one;
 
-void my_button_event_handler(tLuiEvent event);
+void my_button_event_handler(uint8_t event);
 void my_input_read_opengl (tLuiTouchInputData *input);
 void gl_init();
 void my_set_pixel_opengl (uint16_t x, uint16_t y, uint16_t color);
@@ -84,7 +84,7 @@ void my_input_read_opengl (tLuiTouchInputData *input)
 }
 
 
-void my_button_event_handler(tLuiEvent event)
+void my_button_event_handler(uint8_t event)
 {
 	char event_name[30] = {0};
 	//printf("\nState Change occured. Event ID: %d", event);
@@ -212,34 +212,37 @@ int main (int argc, char** argv)
 
     //----------------------------------------------------------
 	//creating display driver variable for lame_ui
-	tLuiDispDrv my_display_driver = lui_dispdrv_create();
-	lui_dispdrv_register(&my_display_driver);
-	lui_dispdrv_set_resolution(240, 320);
-	lui_dispdrv_set_draw_pixel_cb(my_set_pixel_opengl);
-	lui_dispdrv_set_draw_pixels_area_cb(my_set_pixel_area_opengl);
+	tLuiDispDrv *my_display_driver = lui_dispdrv_create();
+	lui_dispdrv_register(my_display_driver);
+	lui_dispdrv_set_resolution(240, 320, my_display_driver);
+	lui_dispdrv_set_draw_pixel_cb(my_set_pixel_opengl, my_display_driver);
+	lui_dispdrv_set_draw_pixels_area_cb(my_set_pixel_area_opengl, my_display_driver);
+	//my_display_driver = lui_dispdrv_destroy(my_display_driver);
 
-	tLuiTouchInputDev my_input_device = lui_touch_inputdev_create();
-	lui_touch_inputdev_register(&my_input_device);
-	lui_touch_inputdev_set_read_input_cb(my_input_read_opengl);	
+	tLuiTouchInputDev *my_input_device = lui_touch_inputdev_create();
+	lui_touch_inputdev_register(my_input_device);
+	lui_touch_inputdev_set_read_input_cb(my_input_read_opengl, my_input_device);	
 
 	//----------------------------------------------------------
 	//create and add scenes
-	tLuiScene g_scn_one = lui_scene_create();
-	lui_scene_add(&g_scn_one);
-	lui_scene_set_bg_color(ILI_COLOR_BLUE, &g_scn_one);
-	lui_scene_set_font(&font_microsoft_16, &g_scn_one);
+	tLuiScene *g_scn_one = lui_scene_create();
+	lui_scene_set_bg_color(ILI_COLOR_BLUE, g_scn_one);
+	lui_scene_set_font(&font_microsoft_16, g_scn_one);
+	//g_scn_one = lui_scene_destroy(g_scn_one);	// For destroying, assigning the return value is mandatory
 
 	
 	//----------------------------------------------------------
 	//create a label
-	tLuiLabel lbl1 = lui_label_create();
-	//lui_label_add_to_scene(&lbl1, &g_scn_one);
-	lui_label_set_text("This is a label hehe", &lbl1);
-	lui_label_set_position(0, 0, &lbl1);
-	lui_label_set_area(100, 50, &lbl1);
-	lui_label_set_colors(ILI_COLOR_GREEN, ILI_COLOR_BLACK, &lbl1);
-
-
+	tLuiLabel *lbl1 = lui_label_create();
+	lui_label_add_to_scene(lbl1, g_scn_one);
+	lui_label_set_text("This is a label hehe", lbl1);
+	lui_label_set_position(0, 0, lbl1);
+	lui_label_set_area(100, 50, lbl1);
+	lui_label_set_colors(ILI_COLOR_GREEN, ILI_COLOR_BLACK, lbl1);
+	lui_label_set_font(&font_microsoft_16, lbl1);
+	//lbl1 = lui_label_destroy(lbl1);
+	lui_label_remove_from_scene(lbl1);
+	lui_label_add_to_scene(lbl1, g_scn_one);
 
 	//----------------------------------------------------------
 	//Prepare some data for a graph
@@ -252,32 +255,35 @@ int main (int argc, char** argv)
 
 	//----------------------------------------------------------
 	//create a line chart with above data
-	tLuiLineChart grph = lui_linechart_create();
-	//lui_linechart_add_to_scene(&grph, &g_scn_one);
-	lui_linechart_set_data_source((double *)&points, 10, &grph);
-	lui_linechart_set_position(60, 50, &grph);
-	lui_linechart_set_area(110, 200, &grph);
-	lui_linechart_set_grid(ILI_COLOR_BLACK, 4, 3, &grph);
-	lui_linechart_set_colors(ILI_COLOR_RED, ILI_COLOR_BLUE, &grph);
+	// tLuiLineChart grph = lui_linechart_create();
+	// lui_linechart_add_to_scene(&grph, &g_scn_one);
+	// lui_linechart_set_data_source((double *)&points, 10, &grph);
+	// lui_linechart_set_position(60, 50, &grph);
+	// lui_linechart_set_area(110, 200, &grph);
+	// lui_linechart_set_grid(ILI_COLOR_BLACK, 4, 3, &grph);
+	// lui_linechart_set_colors(ILI_COLOR_RED, ILI_COLOR_BLUE, &grph);
 
 
 
 	//----------------------------------------------------------
 	//create a button
-	tLuiButton btn = lui_button_create();
-	//lui_button_add_to_scene(&btn, &g_scn_one);
-	lui_button_set_position(80, 280, &btn);
-	lui_button_set_area(80, 30, &btn);
-	lui_button_set_label_text("Button", &btn);
-	lui_button_set_label_font(&font_microsoft_16, &btn);
-	lui_button_set_label_color(ILI_COLOR_MAROON, &btn);
-	lui_button_set_colors(ILI_COLOR_CYAN, ILI_COLOR_GREEN, ILI_COLOR_YELLOW, &btn);
-	lui_button_set_event_cb(my_button_event_handler, &btn);
+	// tLuiButton btn = lui_button_create();
+	// //lui_button_add_to_scene(&btn, &g_scn_one);
+	// lui_button_set_position(80, 280, &btn);
+	// lui_button_set_area(80, 30, &btn);
+	// lui_button_set_label_text("Button", &btn);
+	// lui_button_set_label_font(&font_microsoft_16, &btn);
+	// lui_button_set_label_color(ILI_COLOR_MAROON, &btn);
+	// lui_button_set_colors(ILI_COLOR_CYAN, ILI_COLOR_GREEN, ILI_COLOR_YELLOW, &btn);
+	// lui_button_set_event_cb(my_button_event_handler, &btn);
 
-	lui_scene_render(&g_scn_one);
-
-	tLuiSwitch swtch = lui_switch_create();
-	lui_switch_draw(&swtch);
+	tLuiSwitch *swtch = lui_switch_create();
+	lui_switch_add_to_scene(swtch, g_scn_one);
+	lui_switch_set_position(50, 50, swtch);
+	// lui_switch_remove_from_scene(swtch);
+	// lui_switch_add_to_scene(swtch, &g_scn_one);
+	swtch = lui_switch_destroy(swtch); // For destroying, assigning the return value is mandatory
+	lui_switch_add_to_scene(swtch, g_scn_one);
 
 	clock_t start; 
 	start = clock();
@@ -292,7 +298,7 @@ int main (int argc, char** argv)
 	// 	{
 	// 		start = clock();
 			
-	// 		//lui_scene_render(&g_scn_one);
+	 		lui_scene_render(g_scn_one);
 
 	// 		g_input.is_pressed = (start >> 18) & 1;
 	// 		g_input.x = (start >> 19) & 1 ? orig_x : 10; // if random == 1, position is on button else position is 10
