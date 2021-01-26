@@ -37,18 +37,19 @@
 #define VERT_RES	320
 #define PADDING		25
 
-tLuiTouchInputData g_input;	// Made input global so it can be changed by glut callback functions
-tLuiScene *g_scn_one;		// Made scene global so glut callbacks can access it
-tLuiLabel *g_lbl1;			// Made a label global so LameUI button callback can modify its text
-tLuiLabel *g_lbl3;			// For same reason as above
+lui_touch_input_data_t g_input;	// Made input global so it can be changed by glut callback functions
+lui_scene_t *g_scn_one;		// Made scene global so glut callbacks can access it
+lui_label_t *g_lbl1;			// Made a label global so LameUI button callback can modify its text
+lui_label_t *g_lbl3;			// For same reason as above
 char event_name[30] = {0}; 	// Made the text global so LameUI knows its address. Latter I'll try to make set_text functions scope independent
 char btn_press_cnt[4] = {0};// For same reason as above
 uint16_t btn_press_cnt_int = 0;
+uint32_t g_disp_buffer_counter = 0;
 
 // Callback functions for LameUI ---------------------------------------------------
 void my_button_event_handler(uint8_t event);
 void my_switch_event_handler(uint8_t event, uint8_t value);
-void my_input_read_opengl (tLuiTouchInputData *input);
+void my_input_read_opengl (lui_touch_input_data_t *input);
 void my_set_pixel_opengl (uint16_t x, uint16_t y, uint16_t color);
 void my_set_pixel_area_opengl (uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t color);
 // End LameUI callbacks ------------------------------------------------------------
@@ -64,6 +65,8 @@ void myMouseMove(int x, int y);
 void myMousePressMove(int x, int y);
 void myMousePress(int button, int state, int x, int y);
 // End glut callbacks ---------------------------------------------------------------
+
+
 
 
 // Initialize OpenGL
@@ -89,10 +92,9 @@ void gl_init()
 }
 
 
-
 // Read input from an input device
 // It should take device position (x, y) and a button's status
-void my_input_read_opengl (tLuiTouchInputData *input)
+void my_input_read_opengl (lui_touch_input_data_t *input)
 {
 	input->is_pressed = g_input.is_pressed;
 	input->y = g_input.y;
@@ -153,35 +155,15 @@ void my_switch_event_handler(uint8_t event, uint8_t value)
 }
 
 
-// Set an individual pixel at x, y position with rgp565 color
-// This method is not fast if called continuously to fill an area..
-// To fill an area with a specific color, use the set_pixel_area() func.
-void my_set_pixel_opengl (uint16_t p_x, uint16_t p_y, uint16_t p_color)
+// Flush the current buffer when this callback is called by LameUI.
+// Using this, no need to flush every time set_pixel_cb is called. Rather buffer it and flush all together
+void my_render_complete_handler()
 {
-	GLint x = (GLint)p_x;
-	GLint y = (GLint)p_y;
-
-	// Seperating RGB565 color
-	uint8_t uint_red_5 = (p_color >> 8) & 0xF8;
-	uint8_t uint_green_6 = (p_color >> 3) & 0xFC;
-	uint8_t uint_blue_5 = (p_color << 3);
-
-	// Normalizing value within range 0.0 to 1.0
-	GLfloat glf_red = (GLfloat)uint_red_5 / 255.0;
-	GLfloat glf_green = (GLfloat)uint_green_6 / 255.0;
-	GLfloat glf_blue = (GLfloat)uint_blue_5 / 255.0;
-
-	// Set the color
-	glColor3f(glf_red, glf_green, glf_blue);
-
-	glBegin(GL_POINTS);
-
-	// glVertex2i just draws a point on specified co-ordinate
-	glVertex2i(x, y);
-	glEnd();
-	// Flush the buffer and display its content
 	glFlush();
+	g_disp_buffer_counter = 0; //reset the counter
 }
+
+
 
 
 // Draw an area of pixels in one go.
@@ -220,10 +202,20 @@ void my_set_pixel_area_opengl (uint16_t p_x, uint16_t p_y, uint16_t p_width, uin
 			glVertex2i(x, y);
 			glEnd();
 
+			// increase the buffer counter
+			g_disp_buffer_counter++;
 		}
 	}
 	// Flush the buffer and display its content
-	glFlush();
+	//glFlush();
+
+	
+	// If size reached max buffer size, flush it now
+	if (g_disp_buffer_counter >= HOR_RES * VERT_RES)
+	{
+		glFlush();
+		g_disp_buffer_counter = 0; //reset the counter
+	}
 }
 
 
@@ -252,14 +244,14 @@ int main (int argc, char** argv)
 
 	//----------------------------------------------------------
 	//creating display driver variable for lame_ui
-	tLuiDispDrv *my_display_driver = lui_dispdrv_create();
+	lui_dispdrv_t *my_display_driver = lui_dispdrv_create();
 	lui_dispdrv_register(my_display_driver);
 	lui_dispdrv_set_resolution(240, 320, my_display_driver);
-	lui_dispdrv_set_draw_pixel_cb(my_set_pixel_opengl, my_display_driver);
 	lui_dispdrv_set_draw_pixels_area_cb(my_set_pixel_area_opengl, my_display_driver);
+	lui_dispdrv_set_render_complete_cb(my_render_complete_handler, my_display_driver);
 	//my_display_driver = lui_dispdrv_destroy(my_display_driver);
 
-	tLuiTouchInputDev *my_input_device = lui_touch_inputdev_create();
+	lui_touch_input_dev_t *my_input_device = lui_touch_inputdev_create();
 	lui_touch_inputdev_register(my_input_device);
 	lui_touch_inputdev_set_read_input_cb(my_input_read_opengl, my_input_device);	
 
@@ -282,7 +274,7 @@ int main (int argc, char** argv)
 	//lui_label_set_font(&font_microsoft_16, g_lbl1);
 	//g_lbl1 = lui_label_destroy(g_lbl1);
 
-	tLuiLabel *lbl2 = lui_label_create();
+	lui_label_t *lbl2 = lui_label_create();
 	lui_label_add_to_scene(lbl2, g_scn_one);
 	lui_label_set_text("Event:", lbl2);
 	lui_label_set_position(0, 0, lbl2);
@@ -296,7 +288,7 @@ int main (int argc, char** argv)
 	lui_label_set_area(50, 20, g_lbl3);
 	lui_label_set_colors(ILI_COLOR_GREEN, LUI_RGB(60, 60, 60), g_lbl3);
 
-	tLuiLabel *lbl4 = lui_label_create();
+	lui_label_t *lbl4 = lui_label_create();
 	lui_label_add_to_scene(lbl4, g_scn_one);
 	lui_label_set_text("Click Count:", lbl4);
 	lui_label_set_position(0, 25, lbl4);
@@ -315,7 +307,7 @@ int main (int argc, char** argv)
 
 	//----------------------------------------------------------
 	//create a line chart with above data
-	tLuiLineChart *grph = lui_linechart_create();
+	lui_chart_t *grph = lui_linechart_create();
 	lui_linechart_add_to_scene(grph, g_scn_one);
 	lui_linechart_set_data_source((double *)&points, 30, grph);
 	lui_linechart_set_data_auto_scale(0, grph);
@@ -329,7 +321,7 @@ int main (int argc, char** argv)
 
 	//----------------------------------------------------------
 	//create a button
-	tLuiButton *btn = lui_button_create();
+	lui_button_t *btn = lui_button_create();
 	lui_button_add_to_scene(btn, g_scn_one);
 	lui_button_set_position(80, 280, btn);
 	lui_button_set_area(80, 30, btn);
@@ -339,14 +331,14 @@ int main (int argc, char** argv)
 	lui_button_set_colors(ILI_COLOR_CYAN, ILI_COLOR_GREEN, ILI_COLOR_YELLOW, btn);
 	lui_button_set_event_cb(my_button_event_handler, btn);
 
-	tLuiLabel *lbl_light_mode = lui_label_create();
+	lui_label_t *lbl_light_mode = lui_label_create();
 	lui_label_add_to_scene(lbl_light_mode, g_scn_one);
 	lui_label_set_text("Light mode", lbl_light_mode);
 	lui_label_set_position(5, 255, lbl_light_mode);
 	lui_label_set_area(90, 20, lbl_light_mode);
 	lui_label_set_colors(ILI_COLOR_RED, LUI_RGB(60, 60, 60), lbl_light_mode);
 
-	tLuiSwitch *swtch = lui_switch_create();
+	lui_switch_t *swtch = lui_switch_create();
 	lui_switch_add_to_scene(swtch, g_scn_one);
 	lui_switch_set_position(100, 255, swtch);
 	lui_switch_set_colors(0xFFFF, LUI_RGB(60, 60, 60), ILI_COLOR_YELLOW, swtch);
@@ -354,7 +346,7 @@ int main (int argc, char** argv)
 	lui_switch_set_value(1, swtch);
 	lui_switch_set_event_cb(my_switch_event_handler, swtch);
 
-	tLuiLabel *lbl_dark_mode = lui_label_create();
+	lui_label_t *lbl_dark_mode = lui_label_create();
 	lui_label_add_to_scene(lbl_dark_mode, g_scn_one);
 	lui_label_set_text("Dark mode", lbl_dark_mode);
 	lui_label_set_position(145, 255, lbl_dark_mode);
@@ -381,7 +373,7 @@ void myDisplay()
 {
 	lui_scene_render(g_scn_one);
 	// Flush drawing commands
-	glFlush();
+	//glFlush();
 }
 
 // This function is called back by glut when mouse is moved passively
