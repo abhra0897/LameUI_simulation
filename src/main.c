@@ -38,9 +38,10 @@
 #define PADDING		25
 
 lui_touch_input_data_t g_input;	// Made input global so it can be changed by glut callback functions
-lui_scene_t *g_scn_one;		// Made scene global so glut callbacks can access it
+lui_obj_t *g_scn_one;		// Made scene global so glut callbacks can access it
 lui_obj_t *g_lbl1;			// Made a label global so LameUI button callback can modify its text
 lui_obj_t *g_lbl3;			// For same reason as above
+lui_obj_t *btn;
 char event_name[30] = {0}; 	// Made the text global so LameUI knows its address. Latter I'll try to make set_text functions scope independent
 char btn_press_cnt[4] = {0};// For same reason as above
 uint16_t btn_press_cnt_int = 0;
@@ -146,11 +147,11 @@ void my_switch_event_handler(lui_obj_t *obj)
 		uint8_t val = lui_switch_get_value(obj);
 		if (val == 1)
 		{
-			lui_scene_set_bg_color(0, g_scn_one);
+			lui_object_set_bg_color(0, g_scn_one);
 		}
 		else
 		{
-			lui_scene_set_bg_color(LUI_RGB(192, 183, 230), g_scn_one);
+			lui_object_set_bg_color(LUI_RGB(192, 183, 230), g_scn_one);
 		}
 	}
 	
@@ -260,7 +261,7 @@ int main (int argc, char** argv)
 	//----------------------------------------------------------
 	//create and add scenes
 	g_scn_one = lui_scene_create();
-	lui_scene_set_bg_color(0, g_scn_one);
+	lui_object_set_bg_color(0, g_scn_one);
 	lui_scene_set_font(&font_microsoft_16, g_scn_one);
 	//g_scn_one = lui_scene_destroy(g_scn_one);	// For destroying, assigning the return value is mandatory
 
@@ -268,7 +269,7 @@ int main (int argc, char** argv)
 	//----------------------------------------------------------
 	//create a label
 	g_lbl1 = lui_label_create();
-	lui_object_add_to_scene(g_lbl1, g_scn_one);
+	lui_object_add_to_parent(g_lbl1, g_scn_one);
 	lui_label_set_text("--", g_lbl1);
 	lui_object_set_position(52, 0, g_lbl1);
 	lui_object_set_area(190, 20, g_lbl1);
@@ -277,21 +278,21 @@ int main (int argc, char** argv)
 	//g_lbl1 = lui_label_destroy(g_lbl1);
 
 	lui_obj_t *lbl2 = lui_label_create();
-	lui_object_add_to_scene(lbl2, g_scn_one);
+	lui_object_add_to_parent(lbl2, g_scn_one);
 	lui_label_set_text("Event:", lbl2);
 	lui_object_set_position(0, 0, lbl2);
 	lui_object_set_area(50, 20, lbl2);
 	lui_label_set_colors(ILI_COLOR_RED, LUI_RGB(60, 60, 60), lbl2);
 
 	g_lbl3 = lui_label_create();
-	lui_object_add_to_scene(g_lbl3, g_scn_one);
+	lui_object_add_to_parent(g_lbl3, g_scn_one);
 	lui_label_set_text("0", g_lbl3);
 	lui_object_set_position(132, 25, g_lbl3);
 	lui_object_set_area(50, 20, g_lbl3);
 	lui_label_set_colors(ILI_COLOR_GREEN, LUI_RGB(60, 60, 60), g_lbl3);
 
 	lui_obj_t *lbl4 = lui_label_create();
-	lui_object_add_to_scene(lbl4, g_scn_one);
+	lui_object_add_to_parent(lbl4, g_scn_one);
 	lui_label_set_text("Click Count:", lbl4);
 	lui_object_set_position(0, 25, lbl4);
 	lui_object_set_area(130, 20, lbl4);
@@ -310,7 +311,7 @@ int main (int argc, char** argv)
 	//----------------------------------------------------------
 	//create a line chart with above data
 	lui_obj_t *grph = lui_linechart_create();
-	lui_object_add_to_scene(grph, g_scn_one);
+	lui_object_add_to_parent(grph, g_scn_one);
 	lui_linechart_set_data_source((double *)&points, 30, grph);
 	lui_linechart_set_data_auto_scale(0, grph);
 	lui_linechart_set_data_range(-2, 2, grph);
@@ -323,8 +324,8 @@ int main (int argc, char** argv)
 
 	//----------------------------------------------------------
 	//create a button
-	lui_obj_t *btn = lui_button_create();
-	lui_object_add_to_scene(btn, g_scn_one);
+	btn = lui_button_create();
+	lui_object_add_to_parent(btn, g_scn_one);
 	lui_object_set_position(80, 280, btn);
 	lui_object_set_area(80, 30, btn);
 	lui_button_set_label_text("Button", btn);
@@ -334,22 +335,24 @@ int main (int argc, char** argv)
 	lui_object_set_callback(my_obj_event_handler, btn);
 
 	lui_obj_t *lbl_light_mode = lui_label_create();
-	lui_object_add_to_scene(lbl_light_mode, g_scn_one);
+	lui_object_add_to_parent(lbl_light_mode, g_scn_one);
 	lui_label_set_text("Light mode", lbl_light_mode);
 	lui_object_set_position(5, 255, lbl_light_mode);
 	lui_object_set_area(90, 20, lbl_light_mode);
 	lui_label_set_colors(ILI_COLOR_RED, LUI_RGB(60, 60, 60), lbl_light_mode);
 
 	lui_obj_t *swtch = lui_switch_create();
-	lui_object_add_to_scene(swtch, g_scn_one);
+	lui_object_add_to_parent(swtch, g_scn_one);
 	lui_object_set_position(100, 255, swtch);
 	lui_switch_set_colors(0xFFFF, LUI_RGB(60, 60, 60), ILI_COLOR_YELLOW, swtch);
-	//swtch = lui_switch_destroy(swtch); // For destroying, assigning the return value is mandatory
+	//lui_object_destroy(swtch); // destroy permanently, can't be added back
+	//lui_object_remove_from_parent(swtch);
+	//lui_object_add_to_parent(swtch, g_scn_one);
 	lui_switch_set_value(1, swtch);
 	lui_object_set_callback(my_switch_event_handler, swtch);
 
 	lui_obj_t *lbl_dark_mode = lui_label_create();
-	lui_object_add_to_scene(lbl_dark_mode, g_scn_one);
+	lui_object_add_to_parent(lbl_dark_mode, g_scn_one);
 	lui_label_set_text("Dark mode", lbl_dark_mode);
 	lui_object_set_position(145, 255, lbl_dark_mode);
 	lui_object_set_area(90, 20, lbl_dark_mode);
