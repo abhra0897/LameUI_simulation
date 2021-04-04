@@ -39,17 +39,24 @@
 
 lui_touch_input_data_t g_input;	// Made input global so it can be changed by glut callback functions
 lui_obj_t *g_scn_one;		// Made scene global so glut callbacks can access it
-lui_obj_t *g_lbl1;			// Made a label global so LameUI button callback can modify its text
 lui_obj_t *g_lbl3;			// For same reason as above
+lui_obj_t *g_popup_panel;
+lui_obj_t *popup_label;
+lui_obj_t *grph;
 lui_obj_t *btn;
-char event_name[30] = {0}; 	// Made the text global so LameUI knows its address. Latter I'll try to make set_text functions scope independent
+lui_obj_t *btn_reset;
+
+double points[50][2];
 char btn_press_cnt[4] = {0};// For same reason as above
 uint16_t btn_press_cnt_int = 0;
 uint32_t g_disp_buffer_counter = 0;
+uint32_t g_sidp_buffer_max_size = HOR_RES * VERT_RES;
 
 // Callback functions for LameUI ---------------------------------------------------
 void my_obj_event_handler(lui_obj_t *obj);
-void my_switch_event_handler(lui_obj_t *obj);
+void my_popupbtn_event_handler(lui_obj_t *obj);
+void my_swtch_change_grph_event_handler(lui_obj_t *obj);
+void my_swtch_enable_wifi_event_handler(lui_obj_t *obj);
 void my_input_read_opengl (lui_touch_input_data_t *input);
 void my_set_pixel_area_opengl (uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t color);
 // End LameUI callbacks ------------------------------------------------------------
@@ -66,7 +73,10 @@ void myMousePressMove(int x, int y);
 void myMousePress(int button, int state, int x, int y);
 // End glut callbacks ---------------------------------------------------------------
 
-
+// user functions
+void prepare_chart_data_1();
+void prepare_chart_data_2();
+// end user funcions
 
 
 // Initialize OpenGL
@@ -112,46 +122,90 @@ void my_obj_event_handler(lui_obj_t *obj)
 	switch (event)
 	{
 	case LUI_EVENT_NONE:
-		strcpy(event_name, "EVENT NONE");
 		break;
 	case LUI_EVENT_SELECTED:
-		strcpy(event_name, "EVENT SELECTED");
 		break;
 	case LUI_EVENT_SELECTION_LOST:
-		strcpy(event_name, "EVENT SELECTION LOST");
 		break;
 	case LUI_EVENT_PRESSED:
-		strcpy(event_name, "EVENT PRESSED");
-		sprintf(btn_press_cnt, "%d", ++btn_press_cnt_int);
-		lui_label_set_text(btn_press_cnt, g_lbl3);
+		if (obj == btn)
+		{
+			sprintf(btn_press_cnt, "%d", ++btn_press_cnt_int);
+			lui_label_set_text(btn_press_cnt, g_lbl3);
+		}
+		else if (obj == btn_reset)
+		{
+			btn_press_cnt_int = 0;
+			sprintf(btn_press_cnt, "%d", btn_press_cnt_int);
+			lui_label_set_text(btn_press_cnt, g_lbl3);
+		}
 		break;
 	case LUI_EVENT_RELEASED:
-		strcpy(event_name, "EVENT RELEASED");
 		break;		
 	case LUI_EVENT_ENTERED:
-		strcpy(event_name, "EVENT ENTERED");
 		break;
 	default:
 		break;
 	}
-	lui_label_set_text(event_name, g_lbl1);
 }
 
-// Event handler for switch. Called back by LameUI
-void my_switch_event_handler(lui_obj_t *obj)
+
+void my_popupbtn_event_handler(lui_obj_t *obj)
+{
+	//printf("\nState Change occured. Event ID: %d", event);
+	//memset(event_name, 0, strlen(event_name));
+	uint8_t event = lui_object_get_event(obj);
+	switch (event)
+	{
+	case LUI_EVENT_PRESSED:
+		lui_scene_unset_popup(g_scn_one);
+		break;
+	case LUI_EVENT_RELEASED:
+		break;		
+	default:
+		break;
+	}
+}
+
+// Event handler for switch change graph. Called back by LameUI
+void my_swtch_change_grph_event_handler(lui_obj_t *obj)
+{	
+	// change background color
+	uint8_t event = lui_object_get_event(obj);
+	if (event == LUI_EVENT_VALUE_CHANGED)
+	{
+		uint8_t val = lui_switch_get_value(obj);	
+		if (val == 1)
+		{
+			prepare_chart_data_1();
+			lui_linechart_set_data_source((double *)&points, 50, grph);
+		}
+		else
+		{
+			prepare_chart_data_2();
+			lui_linechart_set_data_source((double *)&points, 50, grph);
+		}
+	}
+}
+
+// Event handler for switch change graph. Called back by LameUI
+void my_swtch_enable_wifi_event_handler(lui_obj_t *obj)
 {	
 	// change background color
 	uint8_t event = lui_object_get_event(obj);
 	if (event == LUI_EVENT_VALUE_CHANGED)
 	{
 		uint8_t val = lui_switch_get_value(obj);
+		
 		if (val == 1)
 		{
-			lui_object_set_bg_color(0, g_scn_one);
+			lui_label_set_text("Alert:\nWiFi is enabled", popup_label);
+			lui_scene_set_popup(g_popup_panel, g_scn_one);
 		}
 		else
 		{
-			lui_object_set_bg_color(LUI_RGB(192, 183, 230), g_scn_one);
+			lui_label_set_text("Alert:\nWiFi is disabled", popup_label);
+			lui_scene_set_popup(g_popup_panel, g_scn_one);
 		}
 	}
 	
@@ -214,7 +268,7 @@ void my_set_pixel_area_opengl (uint16_t p_x, uint16_t p_y, uint16_t p_width, uin
 
 	
 	// If size reached max buffer size, flush it now
-	if (g_disp_buffer_counter >= HOR_RES * VERT_RES)
+	if (g_disp_buffer_counter >= g_sidp_buffer_max_size)
 	{
 		glFlush();
 		g_disp_buffer_counter = 0; //reset the counter
@@ -267,97 +321,142 @@ int main (int argc, char** argv)
 
 	
 	//----------------------------------------------------------
-	//create a label
-	g_lbl1 = lui_label_create();
-	lui_object_add_to_parent(g_lbl1, g_scn_one);
-	lui_label_set_text("--", g_lbl1);
-	lui_object_set_position(52, 0, g_lbl1);
-	lui_object_set_area(190, 20, g_lbl1);
-	lui_label_set_colors(ILI_COLOR_GREEN, LUI_RGB(60, 60, 60), g_lbl1);
-	//lui_label_set_font(&font_microsoft_16, g_lbl1);
-	//g_lbl1 = lui_label_destroy(g_lbl1);
+	//create label
 
-	lui_obj_t *lbl2 = lui_label_create();
-	lui_object_add_to_parent(lbl2, g_scn_one);
-	lui_label_set_text("Event:", lbl2);
-	lui_object_set_position(0, 0, lbl2);
-	lui_object_set_area(50, 20, lbl2);
-	lui_label_set_colors(ILI_COLOR_RED, LUI_RGB(60, 60, 60), lbl2);
-
-	g_lbl3 = lui_label_create();
-	lui_object_add_to_parent(g_lbl3, g_scn_one);
-	lui_label_set_text("0", g_lbl3);
-	lui_object_set_position(132, 25, g_lbl3);
-	lui_object_set_area(50, 20, g_lbl3);
-	lui_label_set_colors(ILI_COLOR_GREEN, LUI_RGB(60, 60, 60), g_lbl3);
+	lui_obj_t *lbl_heading = lui_label_create();
+	lui_object_add_to_parent(lbl_heading, g_scn_one);
+	lui_label_set_text("This is a demo of LameUI :)", lbl_heading);
+	lui_object_set_position(1, 1, lbl_heading);
+	lui_object_set_area(250, 20, lbl_heading);
+	lui_label_set_colors(ILI_COLOR_WHITE, LUI_RGB(219, 0, 150), lbl_heading);
+	lui_object_set_border_visibility(1, lbl_heading);
 
 	lui_obj_t *lbl4 = lui_label_create();
 	lui_object_add_to_parent(lbl4, g_scn_one);
-	lui_label_set_text("Click Count:", lbl4);
-	lui_object_set_position(0, 25, lbl4);
-	lui_object_set_area(130, 20, lbl4);
-	lui_label_set_colors(ILI_COLOR_RED, LUI_RGB(60, 60, 60), lbl4);
+	lui_label_set_text("Counter:", lbl4);
+	lui_object_set_position(10, 175, lbl4);
+	lui_object_set_area(70, 20, lbl4);
+	lui_label_set_colors(ILI_COLOR_PINK, LUI_RGB(0, 0, 0), lbl4);
+
+	g_lbl3 = lui_label_create();
+	lui_object_add_to_parent(g_lbl3, g_scn_one);
+	lui_label_set_font(&font_ubuntu_48, g_lbl3);
+	lui_label_set_text("0", g_lbl3);
+	lui_object_set_position(85, 160, g_lbl3);
+	lui_object_set_area(110, 50, g_lbl3);
+	lui_label_set_colors(ILI_COLOR_GREEN, LUI_RGB(60, 60, 60), g_lbl3);
+	lui_object_set_border_visibility(1, g_lbl3);
+	lui_object_set_border_color(LUI_RGB(100, 100, 100), g_lbl3);
+
+	
 
 
 	//----------------------------------------------------------
 	//Prepare some data for a graph
-	double points[30][2];
-	for (int i = 0; i < 30; i++)
-	{
-		points[i][0] = i;		//x value of i'th element
-		points[i][1] = sin(i);	//y value of i'th element
-	}
-
+	prepare_chart_data_2();
+	
 	//----------------------------------------------------------
 	//create a line chart with above data
-	lui_obj_t *grph = lui_linechart_create();
+	grph = lui_linechart_create();
 	lui_object_add_to_parent(grph, g_scn_one);
-	lui_linechart_set_data_source((double *)&points, 30, grph);
-	lui_linechart_set_data_auto_scale(0, grph);
-	lui_linechart_set_data_range(-2, 2, grph);
-	lui_object_set_position(60, 50, grph);
-	lui_object_set_area(110, 200, grph);
-	lui_linechart_set_grid(ILI_COLOR_BLACK, 4, 3, grph);
-	lui_linechart_set_colors(ILI_COLOR_RED, ILI_COLOR_WHITE, grph);
-	//lui_linechart_set_border(ILI_COLOR_BLACK, grph);
+	lui_linechart_set_data_source((double *)&points, 50, grph);
+	lui_linechart_set_data_auto_scale(1, grph);
+	//lui_linechart_set_data_range(-4, 4, grph);
+	lui_object_set_position(20, 50, grph);
+	lui_object_set_area(200, 100, grph);
+	lui_linechart_set_grid(LUI_RGB(60, 60, 60), 4, 3, grph);
+	lui_linechart_set_colors(ILI_COLOR_PINK, ILI_COLOR_BLACK, grph);
+	lui_object_set_border_visibility(1, grph);
+	lui_object_set_border_color(ILI_COLOR_PINK, grph);
 
 
 	//----------------------------------------------------------
+	
+
+	lui_obj_t *lbl_enable_wifi = lui_label_create();
+	lui_object_add_to_parent(lbl_enable_wifi, g_scn_one);
+	lui_label_set_text("Enable WiFi", lbl_enable_wifi);
+	lui_object_set_position(5, 225, lbl_enable_wifi);
+	lui_object_set_area(120, 20, lbl_enable_wifi);
+	lui_label_set_colors(ILI_COLOR_PINK, LUI_RGB(0, 0, 0), lbl_enable_wifi);
+
+	lui_obj_t *swtch_enable_wifi = lui_switch_create();
+	lui_object_add_to_parent(swtch_enable_wifi, g_scn_one);
+	lui_object_set_position(140, 225, swtch_enable_wifi);
+	lui_switch_set_colors(0xFFFF, LUI_RGB(60, 60, 60), LUI_RGB(171, 0, 117), swtch_enable_wifi);
+	lui_object_set_border_visibility(1, swtch_enable_wifi);
+	lui_switch_set_value(0, swtch_enable_wifi);
+	lui_object_set_callback(my_swtch_enable_wifi_event_handler, swtch_enable_wifi);
+
+	lui_obj_t *lbl_change_grph = lui_label_create();
+	lui_object_add_to_parent(lbl_change_grph, g_scn_one);
+	lui_label_set_text("Change graph", lbl_change_grph);
+	lui_object_set_position(5, 250, lbl_change_grph);
+	lui_object_set_area(120, 20, lbl_change_grph);
+	lui_label_set_colors(ILI_COLOR_PINK, LUI_RGB(0, 0, 0), lbl_change_grph);
+
+	lui_obj_t *swtch_change_grph = lui_switch_create();
+	lui_object_add_to_parent(swtch_change_grph, g_scn_one);
+	lui_object_set_position(140, 250, swtch_change_grph);
+	lui_switch_set_colors(0xFFFF, LUI_RGB(60, 60, 60), LUI_RGB(171, 0, 117), swtch_change_grph);
+	lui_object_set_border_visibility(1, swtch_change_grph);
+	lui_switch_set_value(0, swtch_change_grph);
+	lui_object_set_callback(my_swtch_change_grph_event_handler, swtch_change_grph);
+
+	
 	//create a button
 	btn = lui_button_create();
 	lui_object_add_to_parent(btn, g_scn_one);
-	lui_object_set_position(80, 280, btn);
+	lui_object_set_position(35, 280, btn);
 	lui_object_set_area(80, 30, btn);
-	lui_button_set_label_text("Button", btn);
+	lui_button_set_label_text("Count", btn);
 	lui_button_set_label_font(&font_microsoft_16, btn);
-	lui_button_set_label_color(ILI_COLOR_MAROON, btn);
-	lui_button_set_colors(ILI_COLOR_CYAN, ILI_COLOR_GREEN, ILI_COLOR_YELLOW, btn);
+	lui_button_set_label_color(ILI_COLOR_WHITE, btn);
+	lui_button_set_colors(LUI_RGB(219, 0, 150), LUI_RGB(112, 0, 77), LUI_RGB(171, 0, 117), btn);
 	lui_object_set_callback(my_obj_event_handler, btn);
 
-	lui_obj_t *lbl_light_mode = lui_label_create();
-	lui_object_add_to_parent(lbl_light_mode, g_scn_one);
-	lui_label_set_text("Light mode", lbl_light_mode);
-	lui_object_set_position(5, 255, lbl_light_mode);
-	lui_object_set_area(90, 20, lbl_light_mode);
-	lui_label_set_colors(ILI_COLOR_RED, LUI_RGB(60, 60, 60), lbl_light_mode);
+	btn_reset = lui_button_create();
+	lui_object_add_to_parent(btn_reset, g_scn_one);
+	lui_object_set_position(125, 280, btn_reset);
+	lui_object_set_area(80, 30, btn_reset);
+	lui_button_set_label_text("Reset", btn_reset);
+	lui_button_set_label_font(&font_microsoft_16, btn_reset);
+	lui_button_set_label_color(ILI_COLOR_WHITE, btn_reset);
+	lui_button_set_colors(ILI_COLOR_BLACK, LUI_RGB(40, 40, 40), LUI_RGB(80, 80, 80), btn_reset);
+	lui_object_set_border_visibility(1, btn_reset);
+	lui_object_set_border_color(ILI_COLOR_PINK, btn_reset);
+	lui_object_set_callback(my_obj_event_handler, btn_reset);
 
-	lui_obj_t *swtch = lui_switch_create();
-	lui_object_add_to_parent(swtch, g_scn_one);
-	lui_object_set_position(100, 255, swtch);
-	lui_switch_set_colors(0xFFFF, LUI_RGB(60, 60, 60), ILI_COLOR_YELLOW, swtch);
-	//lui_object_destroy(swtch); // destroy permanently, can't be added back
-	//lui_object_remove_from_parent(swtch);
-	//lui_object_add_to_parent(swtch, g_scn_one);
-	lui_switch_set_value(1, swtch);
-	lui_object_set_callback(my_switch_event_handler, swtch);
 
-	lui_obj_t *lbl_dark_mode = lui_label_create();
-	lui_object_add_to_parent(lbl_dark_mode, g_scn_one);
-	lui_label_set_text("Dark mode", lbl_dark_mode);
-	lui_object_set_position(145, 255, lbl_dark_mode);
-	lui_object_set_area(90, 20, lbl_dark_mode);
-	lui_label_set_colors(ILI_COLOR_RED, LUI_RGB(60, 60, 60), lbl_dark_mode);
+	// -------------------------------------------
+	// create popup group
+	g_popup_panel = lui_panel_create();
+	popup_label = lui_label_create();
+	lui_obj_t *popup_btn = lui_button_create();
+	lui_object_add_to_parent(popup_label, g_popup_panel);
+	lui_object_add_to_parent(popup_btn, g_popup_panel);
+	lui_label_set_text("This is a popup", popup_label);
+	lui_object_set_bg_color(LUI_RGB(50, 50, 50), popup_label);
 
+	lui_object_set_position(40, 60, popup_btn);
+	lui_object_set_position(5, 2, popup_label);
+	lui_object_set_position(40, 130, g_popup_panel);
+
+	lui_object_set_area(140, 18, popup_label);
+	lui_object_set_area(80, 28, popup_btn);
+	lui_object_set_area(160, 100, g_popup_panel);
+
+	lui_object_set_border_visibility(1, g_popup_panel);
+	lui_object_set_bg_color(LUI_RGB(50, 50, 50), g_popup_panel);
+	
+	lui_button_set_label_text("OK", popup_btn);
+	lui_button_set_label_font(&font_microsoft_16, popup_btn);
+	lui_button_set_label_color(ILI_COLOR_WHITE, popup_btn);
+	lui_button_set_colors(LUI_RGB(219, 0, 150), LUI_RGB(112, 0, 77), LUI_RGB(171, 0, 117), popup_btn);
+	lui_object_set_callback(my_popupbtn_event_handler, popup_btn);
+
+	//set the active scene. This scene will be rendered iby the lui_update()
+	lui_scene_set_active(g_scn_one);
 
 	/*###################################################################################
 	 #		Glut related functions for drawing and input handling						#
@@ -376,7 +475,8 @@ int main (int argc, char** argv)
 // Here we call our render function
 void myDisplay()
 {
-	lui_scene_render(g_scn_one);
+	// the main update function to process input and display output
+	lui_update();
 	// Flush drawing commands
 	glFlush();
 }
@@ -419,4 +519,33 @@ void myIdle()
 {
 	sleep(.015); //wait 15ms to save CPU
 	glutPostRedisplay();
+}
+
+// prepare a set of data to be plotted
+void prepare_chart_data_1()
+{
+	for (int i = 0; i < 20; i++)
+	{
+		points[i][0] = i;		//x value of i'th element
+		points[i][1] = i*i;	//y value of i'th element
+	}
+	for (int i = 20; i < 50; i++)
+	{
+		points[i][0] = i;		//x value of i'th element
+		points[i][1] = (i / sin(i*i));	//y value of i'th element
+	}
+}
+
+void prepare_chart_data_2()
+{
+	for (int i = 0; i < 20; i++)
+	{
+		points[i][0] = i;		//x value of i'th element
+		points[i][1] = i*i;	//y value of i'th element
+	}
+	for (int i = 20; i < 50; i++)
+	{
+		points[i][0] = i;		//x value of i'th element
+		points[i][1] = (i / sin(i));	//y value of i'th element
+	}
 }
