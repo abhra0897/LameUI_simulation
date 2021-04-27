@@ -29,6 +29,7 @@ BINDIR		 =  bin/
 SRCS   	 	 =  main.c
 # LameUI source file
 SRCS	 	+=  lame_ui.c
+#SRCS	 	+=  malloc_count.c
 #--------------------------------------------------------------------
 
 #------------ [COMPILED OBJECT FILES] -------------------------------
@@ -38,7 +39,7 @@ OBJ			 =  $(SRCS:.c=.o)
 
 #------------ [INCLUDE DIRECTORIES] ---------------------------------
 # Includes for user files(headers)
-INCLS		 =  -Iinc
+INCLS		 =  
 # Include for lameui files
 INCLS 		+=  -ILameUI/inc
 # Includes for Font and bitmap related files
@@ -51,6 +52,7 @@ LIBS  	 	 =  -lGL
 LIBS  		+=  -lGLU
 LIBS  		+=  -lglut
 LIBS  		+=  -lm
+LIBS  		+=  -ldl #for malloc_count.c
 
 LIBPATH		 =  -L.
 #--------------------------------------------------------------------
@@ -66,7 +68,7 @@ TARGET_MAIN	 =  $(addprefix $(BINDIR),$(TARGET))
 ######################################################################
 
 # Cross compiler information
-CC			 =  gcc
+CC			 =  gcc #tcc
 DEBUG		 =  gdb
 
 # Compiler flags used to create .o files from .c/cpp files
@@ -79,10 +81,16 @@ CFLAGS  	+=  -Wall -Wextra -Warray-bounds
 #                         SETUP TARGETS                              #
 ######################################################################
 
+
 # Rule to make all
 .PHONY: all
 all: $(TARGET_MAIN)
 
+
+# Rule to make all and then run it
+.PHONY: run
+run: $(TARGET_MAIN)
+	$(TARGET_MAIN)
 
 
 # Rule to build lameui library using its own makefile
