@@ -29,7 +29,6 @@ BINDIR		 =  bin/
 SRCS   	 	 =  main.c
 # LameUI source file
 SRCS	 	+=  lame_ui.c
-#SRCS	 	+=  malloc_count.c
 #--------------------------------------------------------------------
 
 #------------ [COMPILED OBJECT FILES] -------------------------------
@@ -39,7 +38,7 @@ OBJ			 =  $(SRCS:.c=.o)
 
 #------------ [INCLUDE DIRECTORIES] ---------------------------------
 # Includes for user files(headers)
-INCLS		 =  
+INCLS		 =  -Iinc
 # Include for lameui files
 INCLS 		+=  -ILameUI/inc
 # Includes for Font and bitmap related files
@@ -52,9 +51,8 @@ LIBS  	 	 =  -lGL
 LIBS  		+=  -lGLU
 LIBS  		+=  -lglut
 LIBS  		+=  -lm
-LIBS  		+=  -ldl #for malloc_count.c
 
-LIBPATH		 =  -L.
+LIBPATH		 =  -Llibs
 #--------------------------------------------------------------------
 
 #------------ [DON'T EDIT BELOW PART] -------------------------------
@@ -125,7 +123,7 @@ $(OBJDIR)%.o: $(SRCDIR_LAMEUI)%.c
 # Rule to make target executable by linking object files and libraries
 $(TARGET_MAIN): $(OBJ_MAIN)
 		@echo [Linking all objects...]
-		$(CC) -o $(TARGET_MAIN) $^ $(LIBS)
+		$(CC) -o $(TARGET_MAIN) $^ $(LIBPATH) $(LIBS)
 
 
 
