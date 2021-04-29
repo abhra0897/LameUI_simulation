@@ -52,7 +52,7 @@ LIBS  		+=  -lGLU
 LIBS  		+=  -lglut
 LIBS  		+=  -lm
 
-LIBPATH		 =  -Llibs
+LIBPATH		 =  #-Llibs
 #--------------------------------------------------------------------
 
 #------------ [DON'T EDIT BELOW PART] -------------------------------

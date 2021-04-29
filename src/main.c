@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "GL/glut.h"
+#include <GL/glut.h>
 #include <math.h>
 #include <inttypes.h>
 #include "lame_ui.h"
