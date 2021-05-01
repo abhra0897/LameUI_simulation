@@ -1916,7 +1916,7 @@ void lui_scene_set_popup(lui_obj_t *obj, lui_obj_t *obj_scene)
 	}
 	
 
-	_lui_object_set_need_refresh(obj_scene); 
+	_lui_object_set_need_refresh(obj); 
 }
 
 void lui_scene_unset_popup(lui_obj_t *obj_scene)
@@ -2011,7 +2011,7 @@ void lui_object_add_to_parent(lui_obj_t *obj, lui_obj_t *parent_obj)
 
 	// Common things to do
 	obj->parent = parent_obj;
-	_lui_object_set_need_refresh(obj->parent);
+	_lui_object_set_need_refresh(obj);
 }
 
 void lui_object_remove_from_parent(lui_obj_t *obj)
