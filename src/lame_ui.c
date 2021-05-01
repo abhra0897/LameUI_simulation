@@ -1979,7 +1979,8 @@ lui_obj_t* _lui_object_create()
 	obj->visible = 1;
 	obj->index = -1;
 	obj->parent = NULL;
-	obj->children = NULL;
+	obj->first_child = NULL;
+	obj->next_sibling = NULL;
 	obj->children_count = 0;
 
 	return obj;
