@@ -179,13 +179,77 @@ typedef struct _lui_obj_s
 
 
 
-	lui_obj_t *item1 = lui_list_add_item("Shut Down", list);
-	lui_obj_t *item2 = lui_list_add_item("Restart", list);
-	lui_obj_t *item3 = lui_list_add_item("Suspend", list);
-	lui_obj_t *item4 = lui_list_add_item("Log Out", list);
-	lui_obj_t *item5 = lui_list_add_item("Switch User", list);
-	lui_obj_t *item6 = lui_list_add_item("Hibernate", list);
-	lui_obj_t *item7 = lui_list_add_item("Lock screen", list);
-
-
 	_lui_draw_line(obj->x + (obj->common_style.width / 2), obj->y + obj->common_style.width, obj->x + obj->common_style.width - 2, obj->y - 2, 2, chkbox->style.tick_color);
+
+
+
+
+	void _lui_object_set_need_refresh(lui_obj_t *obj)
+{
+	if (obj == NULL)
+		return;
+
+	// already flag is 1, no need to waste time in loop. Return.
+	if (obj->needs_refresh == 1)
+		return;
+
+	obj->needs_refresh = 1;
+
+	lui_obj_t *child_of_root = obj->first_child;
+	while (child_of_root != NULL)
+	{
+		lui_obj_t *obj_stack[LUI_MAX_OBJECTS] = {NULL};
+        uint8_t stack_counter = 0;
+        obj_stack[stack_counter++] = child_of_root;
+        child_of_root = child_of_root->next_sibling;
+
+		while (stack_counter > 0)
+		{
+			// pop from stack
+			lui_obj_t *child = obj_stack[--stack_counter]; 
+			child->needs_refresh = 1;
+
+			// get the child of current object
+            child = child->first_child;
+			// push all children of current object into stack too
+			while (child != NULL)
+			{
+				// push child to stack
+				obj_stack[stack_counter++] = child; 
+				// get sibling of the child
+                child = child->next_sibling;
+			}
+		}
+	}
+
+
+
+
+
+
+
+	void lui_object_add_to_parent(lui_obj_t *obj_child, lui_obj_t *obj_parent)
+{
+    if (obj_child == NULL || obj_parent == NULL)
+    {
+        return;
+    }
+    
+    if (obj_parent->first_child == NULL)
+    {
+        obj_parent->first_child = obj_child;
+    }
+    else
+    {
+        lui_obj_t *next_child = obj_parent->first_child;
+        
+        while (next_child->next_sibling != NULL)
+        {
+            next_child = next_child->next_sibling;
+        }
+        
+        next_child->next_sibling = obj_child;
+    }
+    obj_child->parent = obj_parent;
+}
+}

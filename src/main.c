@@ -358,7 +358,7 @@ int main (int argc, char** argv)
 	lui_object_set_position(0, 1, lbl_heading);
 	lui_object_set_area(HOR_RES, 20, lbl_heading);
 	lui_object_set_bg_color(LUI_STYLE_BUTTON_BG_COLOR, lbl_heading);
-	//lui_label_set_text_color(lui_rgb(0, 0, 0), lbl_heading);
+	lui_label_set_text_color(lui_rgb(238, 238, 238), lbl_heading);
 	lui_object_set_border_visibility(1, lbl_heading);
 
 	
@@ -635,9 +635,6 @@ int main (int argc, char** argv)
 	lui_object_set_position(130, 545, lbl_hockey);
 	lui_object_set_area(300, 20, lbl_hockey);
 
-	
-
-	
 
 	
 	/*-----------------------------------------------------------------------------------
