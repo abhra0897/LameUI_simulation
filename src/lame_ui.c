@@ -8,7 +8,9 @@
 
 #include "lame_ui.h"
 
-lui_main_t g_lui_main;
+
+_lui_mem_block_t g_mem_block;
+lui_main_t *g_lui_main;
 
 
 /*-------------------------------------------------------------------------------
@@ -18,17 +20,20 @@ lui_main_t g_lui_main;
 
 void lui_init()
 {
-	//g_lui_main.scenes = {NULL};
-	g_lui_main.disp_drv = NULL;
-	g_lui_main.touch_input_dev = NULL;
-	g_lui_main.dpad_input_dev = NULL;
-	// g_lui_main.last_touch_data.x = -1;
-	// g_lui_main.last_touch_data.y = -1;
-	// g_lui_main.last_touch_data.is_pressed = -1;
-	g_lui_main.total_scenes = 0;
-	g_lui_main.active_scene = NULL;
-	g_lui_main.active_obj = NULL;
-	g_lui_main.total_created_objects = 0;
+	_lui_mem_init();
+	g_lui_main = _lui_mem_alloc(sizeof(lui_main_t));
+
+	// g_lui_main->scenes = {NULL};
+	 g_lui_main->disp_drv = NULL;
+	 g_lui_main->touch_input_dev = NULL;
+	 g_lui_main->dpad_input_dev = NULL;
+	//  g_lui_main->last_touch_data.x = -1;
+	//  g_lui_main->last_touch_data.y = -1;
+	//  g_lui_main->last_touch_data.is_pressed = -1;
+	 g_lui_main->total_scenes = 0;
+	 g_lui_main->active_scene = NULL;
+	 g_lui_main->active_obj = NULL;
+	 g_lui_main->total_created_objects = 0;
 }
 
 /*
@@ -36,7 +41,7 @@ void lui_init()
  */
 void lui_update()
 {
-	if (g_lui_main.active_scene == NULL)
+	if ( g_lui_main->active_scene == NULL)
 		return;
 
 	// if no display driver is registered, return
@@ -46,18 +51,18 @@ void lui_update()
 
 	lui_obj_t *obj_caused_cb = NULL;
 	// Reading input only if user provided input reading callback function
-	if (g_lui_main.touch_input_dev != NULL)
+	if ( g_lui_main->touch_input_dev != NULL)
 		obj_caused_cb = _lui_process_touch_input_of_act_scene();
-	// else if (g_lui_main.dpad_input_dev != NULL)
+	// else if ( g_lui_main->dpad_input_dev != NULL)
 	// 	_lui_process_dpad_input(scene);
 
 
-	_lui_object_render_parent_with_children(g_lui_main.active_scene);
+	_lui_object_render_parent_with_children( g_lui_main->active_scene);
 
 	// If user is buffering the draw_pixels_area calls instead of instantly flushing to display, 
 	// this callback signals that render is finished and buffer should be flushed to display now
-	if (g_lui_main.disp_drv->render_complete_cb != NULL)
-		g_lui_main.disp_drv->render_complete_cb();
+	if ( g_lui_main->disp_drv->render_complete_cb != NULL)
+		 g_lui_main->disp_drv->render_complete_cb();
 
 	//All rendering done, now we'll handle the callback
 	// if the object that caused callback is not NULL and if the object has a callback func,
@@ -113,7 +118,7 @@ void lui_label_draw(lui_obj_t *obj)
 	// If no scene present, i.e., parent_scene_index == -1, return
 	// If scene is there but scene has no font, return
 	// So, if label has no parent scene, it must have its own font to be rendered
-	if (temp_font == NULL && g_lui_main.active_scene != NULL)
+	if (temp_font == NULL &&  g_lui_main->active_scene != NULL)
 	{
 		temp_font = _lui_get_font_from_active_scene();
 	}
@@ -181,11 +186,11 @@ void lui_label_draw(lui_obj_t *obj)
 lui_obj_t* lui_label_create()
 {
 	// if total created objects become more than max allowed objects, don't create the object
-	if (g_lui_main.total_created_objects + 1 > LUI_MAX_OBJECTS)
+	if ( g_lui_main->total_created_objects + 1 > LUI_MAX_OBJECTS)
 		return NULL;
-	g_lui_main.total_created_objects++;
+	 g_lui_main->total_created_objects++;
 
-	lui_label_t *initial_label = malloc(sizeof(*initial_label));
+	lui_label_t *initial_label =  _lui_mem_alloc(sizeof(*initial_label));
 	
 	initial_label->text = "";
 	initial_label->font = NULL;
@@ -289,7 +294,7 @@ void lui_linechart_draw(lui_obj_t *obj)
 	uint16_t line_color = chart->style.line_color;
 	uint16_t data_points = chart->data.points;
 
-	double mapped_data[g_lui_main.disp_drv->display_hor_res * 2];
+	double mapped_data[ g_lui_main->disp_drv->display_hor_res * 2];
 
 	double x_data_min_new = temp_x;
 	double x_data_max_new = temp_x + width - 1;
@@ -335,7 +340,7 @@ void lui_linechart_draw(lui_obj_t *obj)
 	// Set font for using in chart
 	tFont *temp_font = chart->font;
 	// If object has no font set for it, check the global set font in scene
-	if (temp_font == NULL && g_lui_main.active_scene != NULL)
+	if (temp_font == NULL &&  g_lui_main->active_scene != NULL)
 	{
 		temp_font = _lui_get_font_from_active_scene();
 	}
@@ -391,7 +396,7 @@ void lui_linechart_draw(lui_obj_t *obj)
 		if (i == data_points - 1)
 		{
 			// Don't draw line here, just draw the point
-			g_lui_main.disp_drv->draw_pixels_area_cb(current_x, current_y, 1, 1, line_color);
+			 g_lui_main->disp_drv->draw_pixels_area_cb(current_x, current_y, 1, 1, line_color);
 		}
 
 		// We have next points after thispoint
@@ -417,16 +422,16 @@ void lui_linechart_draw(lui_obj_t *obj)
 lui_obj_t* lui_linechart_create()
 {
 	// if total created objects become more than max allowed objects, don't create the object
-	if (g_lui_main.total_created_objects + 1 > LUI_MAX_OBJECTS)
+	if ( g_lui_main->total_created_objects + 1 > LUI_MAX_OBJECTS)
 		return NULL;
-	g_lui_main.total_created_objects++;
+	 g_lui_main->total_created_objects++;
 
-	lui_chart_t *initial_line_chart = malloc(sizeof(*initial_line_chart));
+	lui_chart_t *initial_line_chart =  _lui_mem_alloc(sizeof(*initial_line_chart));
 
 	double tmp_data[] = {0};
 	initial_line_chart->data.source = tmp_data;
 	initial_line_chart->data.y_max_value = 0;
-	initial_line_chart->data.y_min_value = g_lui_main.disp_drv->display_vert_res;
+	initial_line_chart->data.y_min_value =  g_lui_main->disp_drv->display_vert_res;
 	initial_line_chart->data.points = 0;
 	initial_line_chart->data.auto_scale = 1;
 
@@ -627,7 +632,7 @@ void lui_button_draw(lui_obj_t *obj)
 	// If no scene present, i.e., parent_scene_index == -1, return
 	// If scene is there but scene has no font, return
 	// So, if it has no parent scene, it must have its own font to be rendered
-	if (temp_font == NULL && g_lui_main.active_scene != NULL)
+	if (temp_font == NULL &&  g_lui_main->active_scene != NULL)
 	{
 		temp_font = _lui_get_font_from_active_scene();
 	}
@@ -640,8 +645,8 @@ void lui_button_draw(lui_obj_t *obj)
 	temp_x = temp_x + (btn_width - str_width_height[0]) / 2;
 	temp_y = temp_y + (btn_height - str_width_height[1]) / 2;
 
-	// lui_obj_t *lbl_obj =  malloc(sizeof(*lbl_obj));
-	// lui_label_t *btn_label =  malloc(sizeof(*btn_label));
+	// lui_obj_t *lbl_obj =   _lui_mem_alloc(sizeof(*lbl_obj));
+	// lui_label_t *btn_label =   _lui_mem_alloc(sizeof(*btn_label));
 
 	lui_obj_t *lbl_obj =  lui_label_create();
 	lui_label_t *btn_label =  lbl_obj->obj_main_data;
@@ -667,9 +672,9 @@ void lui_button_draw(lui_obj_t *obj)
 	lui_label_draw(lbl_obj);
 
 	//lbl_obj = NULL;
-	free(btn_label);
-	free(lbl_obj);
-	g_lui_main.total_created_objects--;
+	 _lui_mem_free(btn_label);
+	 _lui_mem_free(lbl_obj);
+	 g_lui_main->total_created_objects--;
 	
 
 	// Finally Draw the border if needed
@@ -685,11 +690,11 @@ void lui_button_draw(lui_obj_t *obj)
 lui_obj_t* lui_button_create()
 {
 	// if total created objects become more than max allowed objects, don't create the object
-	if (g_lui_main.total_created_objects + 1 > LUI_MAX_OBJECTS)
+	if ( g_lui_main->total_created_objects + 1 > LUI_MAX_OBJECTS)
 		return NULL;
-	g_lui_main.total_created_objects++;
+	 g_lui_main->total_created_objects++;
 
-	lui_button_t *initial_button = malloc(sizeof(*initial_button));
+	lui_button_t *initial_button =  _lui_mem_alloc(sizeof(*initial_button));
 
 	initial_button->style.pressed_color = LUI_STYLE_BUTTON_PRESSED_COLOR;
 	initial_button->style.selection_color = LUI_STYLE_BUTTON_SELECTION_COLOR;
@@ -812,7 +817,7 @@ void lui_list_draw(lui_obj_t *obj)
 		return;
 
 	// draw the background first (hard coding the color for now)
-	g_lui_main.disp_drv->draw_pixels_area_cb(obj->x, obj->y, obj->common_style.width, obj->common_style.height, obj->common_style.bg_color);
+	 g_lui_main->disp_drv->draw_pixels_area_cb(obj->x, obj->y, obj->common_style.width, obj->common_style.height, obj->common_style.bg_color);
 
 	// draw the border if needed
 	// Finally Draw the border if needed
@@ -826,11 +831,11 @@ void lui_list_draw(lui_obj_t *obj)
 lui_obj_t* lui_list_create()
 {
 	// if total created objects become more than max allowed objects, don't create the object
-	if (g_lui_main.total_created_objects + 1 > LUI_MAX_OBJECTS)
+	if ( g_lui_main->total_created_objects + 1 > LUI_MAX_OBJECTS)
 		return NULL;
-	g_lui_main.total_created_objects++;
+	 g_lui_main->total_created_objects++;
 
-	lui_list_t *initial_list = malloc(sizeof(*initial_list));
+	lui_list_t *initial_list =  _lui_mem_alloc(sizeof(*initial_list));
 
 	lui_obj_t *obj = _lui_object_create();
 	// object type
@@ -916,41 +921,47 @@ void lui_list_prepare(lui_obj_t *obj)
 	
 	// set x, y coordinates and height, width of all the list items.
 	// list items are treated as children
-	for (uint8_t i = 0; i < obj->children_count - 2; i++)
+	// since first two children are nav buttons, we start from 3rd child
+	lui_obj_t *list_item = obj->first_child->next_sibling->next_sibling;
+	uint8_t item_pos = 0; 
+	uint16_t first_item_pos = (list->current_page_index * list->buttons_per_page);
+	uint16_t last_item_pos = first_item_pos + list->buttons_per_page - 1;
+	while (list_item != NULL)
 	{
-		uint8_t index = i + 2; //first 2 children objects are nav button. after that original list items start.
-		lui_button_t *button_item = obj->children[index]->obj_main_data;
-		obj->children[index]->x = obj->x + 1;
-		// starting offset is set by i and btn_per_page. Taking remainder of i/btn_per_page so that 
-		// everytime i becomes big enough to come to next page, the offset becomes 0
-		obj->children[index]->y = obj->y + ((i % list->buttons_per_page) * button_height) + 1;
-		obj->children[index]->common_style.width = obj->common_style.width - 2;
-		obj->children[index]->common_style.height = button_height;
+		lui_button_t *button_item = list_item->obj_main_data;
+		list_item->x = obj->x + 1;
+		// starting offset is set by item_pos and btn_per_page. Taking remainder of item_pos/btn_per_page so that 
+		// everytime item_pos becomes big enough to come to next page, the offset becomes 0
+		list_item->y = obj->y + ((item_pos % list->buttons_per_page) * button_height) + 1;
+		list_item->common_style.width = obj->common_style.width - 2;
+		list_item->common_style.height = button_height;
 		button_item->label.font = list->font;
 
 		// here, we're checking if the item is in current page. Only the it will be visible
 		// this is done by checking if the index of item is within the range of current page
-		// the `+2` is done because first two children are always nav buttons and actual items start from index 2
-		if (index >= (list->current_page_index * list->buttons_per_page) + 2 &&
-			index < ((list->current_page_index + 1) * list->buttons_per_page) + 2)
+		if (item_pos >= first_item_pos && item_pos <= last_item_pos)
 		{
-			obj->children[index]->visible = 1;
+			list_item->visible = 1;
 		}
 		else
 		{
-			obj->children[index]->visible = 0;
-		}	
+			list_item->visible = 0;
+		}
+
+		// go to next list item
+		list_item = list_item->next_sibling;
+		item_pos++;
 	}
 
 	// navigation button (prev and next) x,y, w, h set.
-	lui_button_t *button_nav_nxt = obj->children[1]->obj_main_data;
-	lui_button_t *button_nav_prev = obj->children[0]->obj_main_data;
+	lui_button_t *button_nav_prev = obj->first_child->obj_main_data;
+	lui_button_t *button_nav_nxt = obj->first_child->next_sibling->obj_main_data;
 
-	obj->children[1]->x = obj->x + (obj->common_style.width / 2) + 10; // index 1 = nav button nxt
-	obj->children[0]->x = obj->x + 10;	// index 0 = nav button prev
-	obj->children[1]->y = obj->children[0]->y = obj->y + list_usable_height;
-	obj->children[1]->common_style.width = obj->children[0]->common_style.width = (obj->common_style.width / 2) - 20; // 4 is just margin
-	obj->children[1]->common_style.height = obj->children[0]->common_style.height = button_height - 2;
+	obj->first_child->next_sibling->x = obj->x + (obj->common_style.width / 2) + 10; // index 1 = nav button nxt
+	obj->first_child->x = obj->x + 10;	// index 0 = nav button prev
+	obj->first_child->next_sibling->y = obj->first_child->y = obj->y + list_usable_height;
+	obj->first_child->next_sibling->common_style.width = obj->first_child->common_style.width = (obj->common_style.width / 2) - 20; // 4 is just margin
+	obj->first_child->next_sibling->common_style.height = obj->first_child->common_style.height = button_height - 2;
 	button_nav_nxt->label.font = button_nav_prev->label.font = list->font;
 	
 	// both nav buttons won't be rendered unless the list is multi page
@@ -959,14 +970,14 @@ void lui_list_prepare(lui_obj_t *obj)
 	{
 		// draw "next" or "prev" button only if there's a next ore previous page
 			if (list->current_page_index + 1 < list->page_count)
-				obj->children[1]->visible = 1;
+				obj->first_child->next_sibling->visible = 1;
 			else
-				obj->children[1]->visible = 0;
+				obj->first_child->next_sibling->visible = 0;
 
 			if (list->current_page_index - 1 >= 0)
-				obj->children[0]->visible = 1;
+				obj->first_child->visible = 1;
 			else
-				obj->children[0]->visible = 0;
+				obj->first_child->visible = 0;
 	}
 
 	// whenever prepare function is called, list (and all children of it) will be redrawn
@@ -983,14 +994,14 @@ lui_obj_t* lui_list_add_item(const char *text, lui_obj_t *obj)
 		return NULL;
 
 	// if total created objects become more than max allowed objects, don't create the object
-	if (g_lui_main.total_created_objects + 1 > LUI_MAX_OBJECTS)
+	if ( g_lui_main->total_created_objects + 1 > LUI_MAX_OBJECTS)
 		return NULL;
-	g_lui_main.total_created_objects++;
+	 g_lui_main->total_created_objects++;
 
 	lui_list_t *list = obj->obj_main_data;
 	list->button_item_min_height = LUI_STYLE_LIST_ITEM_MIN_HEIGHT;
 
-	lui_button_t *initial_button = malloc(sizeof(*initial_button));
+	lui_button_t *initial_button =  _lui_mem_alloc(sizeof(*initial_button));
 	initial_button->style.pressed_color = LUI_STYLE_LIST_ITEM_PRESSED_COLOR;
 	initial_button->style.selection_color = LUI_STYLE_LIST_ITEM_SELECTION_COLOR;
 	initial_button->label.text = (char*)text;
@@ -1034,8 +1045,8 @@ void lui_list_delete_item(lui_obj_t **obj_item_addr)
 
 	lui_object_remove_from_parent(*obj_item_addr);
 	*obj_item_addr = NULL;
-	free(*obj_item_addr);
-	g_lui_main.total_created_objects--;
+	 _lui_mem_free(*obj_item_addr);
+	 g_lui_main->total_created_objects--;
 }
 
 
@@ -1093,8 +1104,8 @@ void lui_list_set_nav_btn_label_color(uint16_t color, lui_obj_t *obj)
 	if (obj->obj_type != LUI_OBJ_LIST)
 		return;
 
-	lui_button_set_label_color(color, obj->children[0]);
-	lui_button_set_label_color(color, obj->children[1]);
+	lui_button_set_label_color(color, obj->first_child);
+	lui_button_set_label_color(color, obj->first_child->next_sibling);
 }
 
 
@@ -1107,8 +1118,8 @@ void lui_list_set_nav_btn_bg_color(uint16_t color, lui_obj_t *obj)
 	if (obj->obj_type != LUI_OBJ_LIST)
 		return;
 
-	lui_object_set_bg_color(color, obj->children[0]);
-	lui_object_set_bg_color(color, obj->children[1]);
+	lui_object_set_bg_color(color, obj->first_child);
+	lui_object_set_bg_color(color, obj->first_child->next_sibling);
 }
 
 
@@ -1121,8 +1132,8 @@ void lui_list_set_nav_btn_extra_colors(uint16_t pressed_color, uint16_t selectio
 	if (obj->obj_type != LUI_OBJ_LIST)
 		return;
 
-	lui_button_set_extra_colors(pressed_color, selection_color, obj->children[0]);
-	lui_button_set_extra_colors(pressed_color, selection_color, obj->children[1]);
+	lui_button_set_extra_colors(pressed_color, selection_color, obj->first_child);
+	lui_button_set_extra_colors(pressed_color, selection_color, obj->first_child->next_sibling);
 }
 
 
@@ -1135,8 +1146,8 @@ void lui_list_set_nav_btn_label_text(const char *btn_prev_text, const char *btn_
 	if (obj->obj_type != LUI_OBJ_LIST)
 		return;
 
-	lui_button_set_label_text(btn_prev_text, obj->children[0]);
-	lui_button_set_label_text(btn_nxt_text, obj->children[1]);
+	lui_button_set_label_text(btn_prev_text, obj->first_child);
+	lui_button_set_label_text(btn_nxt_text, obj->first_child->next_sibling);
 }
 
 
@@ -1149,23 +1160,32 @@ void lui_list_set_nav_btn_border_color(uint16_t color, lui_obj_t *obj)
 	if (obj->obj_type != LUI_OBJ_LIST)
 		return;
 
-	lui_object_set_border_color(color, obj->children[0]);
-	lui_object_set_border_color(color, obj->children[1]);
+	lui_object_set_border_color(color, obj->first_child);
+	lui_object_set_border_color(color, obj->first_child->next_sibling);
 }
 
 
 void _lui_list_add_button_obj(lui_obj_t *obj_btn, lui_obj_t *obj_list)
 {
-	obj_btn->index = obj_list->children_count++;
-	if (obj_list->children == NULL)
-		obj_list->children = malloc(sizeof(obj_list->children));
-	else
-		obj_list->children = realloc(obj_list->children, sizeof(obj_list->children) * (obj_list->children_count));
-	obj_list->children[obj_btn->index] = (lui_obj_t *)obj_btn;
-
+	if (obj_list->first_child == NULL)
+    {
+        obj_list->first_child = obj_btn;
+    }
+    else
+    {
+        lui_obj_t *next_child = obj_list->first_child;
+        
+        while (next_child->next_sibling != NULL)
+        {
+            next_child = next_child->next_sibling;
+        }
+        
+        next_child->next_sibling = obj_btn;
+    }
 
 	// Common things to do
 	obj_btn->parent = obj_list;
+	obj_list->children_count++;
 	_lui_object_set_need_refresh(obj_btn->parent);
 }
 
@@ -1198,7 +1218,7 @@ void _lui_list_nav_btn_cb(lui_obj_t *obj)
 	lui_list_t *list = obj->parent->obj_main_data;
 	if (event == LUI_EVENT_RELEASED)
 	{
-		if (obj == obj->parent->children[0])	// 0th child is nav_prev btn
+		if (obj == obj->parent->first_child)	// first child is nav_prev btn
 		{
 			if (list->current_page_index > 0)
 			{
@@ -1206,7 +1226,7 @@ void _lui_list_nav_btn_cb(lui_obj_t *obj)
 				_lui_object_set_need_refresh(obj->parent);	
 			}
 		}
-		else if (obj == obj->parent->children[1])	// 1st child is nav_nxt button
+		else if (obj == obj->parent->first_child->next_sibling)	// 2nd child is nav_nxt button
 		{
 			if (list->current_page_index < list->page_count - 1)
 			{
@@ -1215,22 +1235,27 @@ void _lui_list_nav_btn_cb(lui_obj_t *obj)
 			}
 		}
 
-		for (uint8_t i = 0; i < obj->parent->children_count - 2; i++)
+		// list items start after first two buttons. First two buttons are nav buttons
+		lui_obj_t *list_item = obj->parent->first_child->next_sibling->next_sibling;
+		uint8_t item_pos = 0; 
+		uint16_t first_item_pos = (list->current_page_index * list->buttons_per_page);
+		uint16_t last_item_pos = first_item_pos + list->buttons_per_page - 1;
+		while (list_item != NULL)
 		{
-			uint8_t index = i + 2; //first 2 children objects are nav button. after that original list items start.
-
 			// here, we're checking if the item is in current page. Only the it will be visible
 			// this is done by checking if the index of item is within the range of current page
-			// the `+2` is done because first two children are always nav buttons and actual items start from index 2
-			if (index >= (list->current_page_index * list->buttons_per_page) + 2 &&
-				index < ((list->current_page_index + 1) * list->buttons_per_page) + 2)
+			if (item_pos >= first_item_pos && item_pos <= last_item_pos)
 			{
-				obj->parent->children[index]->visible = 1;
+				list_item->visible = 1;
 			}
 			else
 			{
-				obj->parent->children[index]->visible = 0;
+				list_item->visible = 0;
 			}
+
+			// go to next list item
+			list_item = list_item->next_sibling;
+			item_pos++;
 			
 		}
 
@@ -1239,14 +1264,14 @@ void _lui_list_nav_btn_cb(lui_obj_t *obj)
 		{
 			// draw "next" or "prev" button only if there's a next ore previous page
 			if (list->current_page_index + 1 < list->page_count)
-				lui_object_set_visibility(1, obj->parent->children[1]); // index 1 : nav_nxt
+				lui_object_set_visibility(1, obj->parent->first_child->next_sibling); // 2nd child: NEXT button
 			else
-				lui_object_set_visibility(0, obj->parent->children[1]);
+				lui_object_set_visibility(0, obj->parent->first_child->next_sibling);
 
 			if (list->current_page_index - 1 >= 0)
-				lui_object_set_visibility(1, obj->parent->children[0]);	// index 0 : nav_prev
+				lui_object_set_visibility(1, obj->parent->first_child);	// 1st child: PREV button
 			else
-				lui_object_set_visibility(0, obj->parent->children[0]);
+				lui_object_set_visibility(0, obj->parent->first_child);
 		}
 	}
 }
@@ -1314,12 +1339,12 @@ void lui_switch_draw(lui_obj_t *obj)
 lui_obj_t* lui_switch_create()
 {
 	// if total created objects become more than max allowed objects, don't create the object
-	if (g_lui_main.total_created_objects + 1 > LUI_MAX_OBJECTS)
+	if ( g_lui_main->total_created_objects + 1 > LUI_MAX_OBJECTS)
 		return NULL;
-	g_lui_main.total_created_objects++;
+	 g_lui_main->total_created_objects++;
 
 
-	lui_switch_t *initial_switch = malloc(sizeof(*initial_switch));
+	lui_switch_t *initial_switch =  _lui_mem_alloc(sizeof(*initial_switch));
 	
 	initial_switch->style.knob_off_color = LUI_STYLE_SWITCH_KNOB_OFF_COLOR;
 	initial_switch->style.knob_on_color = LUI_STYLE_SWITCH_KNOB_ON_COLOR;
@@ -1463,12 +1488,12 @@ void lui_checkbox_draw(lui_obj_t *obj)
 lui_obj_t* lui_checkbox_create()
 {
 	// if total created objects become more than max allowed objects, don't create the object
-	if (g_lui_main.total_created_objects + 1 > LUI_MAX_OBJECTS)
+	if ( g_lui_main->total_created_objects + 1 > LUI_MAX_OBJECTS)
 		return NULL;
-	g_lui_main.total_created_objects++;
+	 g_lui_main->total_created_objects++;
 
 
-	lui_checkbox_t *initial_chkbox = malloc(sizeof(*initial_chkbox));
+	lui_checkbox_t *initial_chkbox =  _lui_mem_alloc(sizeof(*initial_chkbox));
 	
 	initial_chkbox->style.bg_checked_color = LUI_STYLE_CHECKBOX_BG_CHECKED_COLOR;
 	initial_chkbox->style.selection_color = LUI_STYLE_CHECKBOX_SELECTION_COLOR;
@@ -1599,12 +1624,12 @@ void lui_slider_draw(lui_obj_t *obj)
 lui_obj_t* lui_slider_create()
 {
 	// if total created objects become more than max allowed objects, don't create the object
-	if (g_lui_main.total_created_objects + 1 > LUI_MAX_OBJECTS)
+	if ( g_lui_main->total_created_objects + 1 > LUI_MAX_OBJECTS)
 		return NULL;
-	g_lui_main.total_created_objects++;
+	 g_lui_main->total_created_objects++;
 
 
-	lui_slider_t *initial_slider = malloc(sizeof(*initial_slider));
+	lui_slider_t *initial_slider =  _lui_mem_alloc(sizeof(*initial_slider));
 	
 	initial_slider->style.bg_filled_color = LUI_STYLE_SLIDER_BG_FILLED_COLOR;
 	initial_slider->style.knob_color = LUI_STYLE_SLIDER_KNOB_COLOR;
@@ -1767,9 +1792,9 @@ int16_t lui_slider_get_max_value(lui_obj_t *obj)
 lui_obj_t* lui_panel_create()
 {
 	// if total created objects become more than max allowed objects, don't create the object
-	if (g_lui_main.total_created_objects + 1 > LUI_MAX_OBJECTS)
+	if ( g_lui_main->total_created_objects + 1 > LUI_MAX_OBJECTS)
 		return NULL;
-	g_lui_main.total_created_objects++;
+	 g_lui_main->total_created_objects++;
 
 
 	lui_obj_t *obj = _lui_object_create();
@@ -1795,7 +1820,7 @@ void lui_panel_draw(lui_obj_t *obj)
 		return;
 	
 	// for panel, just draw background and optional border
-	g_lui_main.disp_drv->draw_pixels_area_cb(obj->x, obj->y, obj->common_style.width,  obj->common_style.height, obj->common_style.bg_color);
+	 g_lui_main->disp_drv->draw_pixels_area_cb(obj->x, obj->y, obj->common_style.width,  obj->common_style.height, obj->common_style.bg_color);
 	if (obj->common_style.border_visible == 1)
 		_lui_draw_rect(obj->x, obj->y, obj->common_style.width, obj->common_style.height, 1, obj->common_style.border_color);
 }
@@ -1815,11 +1840,11 @@ void lui_panel_draw(lui_obj_t *obj)
 lui_obj_t* lui_scene_create()
 {
 	// if total created objects become more than max allowed objects, don't create the object
-	if (g_lui_main.total_created_objects + 1 > LUI_MAX_OBJECTS)
+	if ( g_lui_main->total_created_objects + 1 > LUI_MAX_OBJECTS)
 		return NULL;
-	g_lui_main.total_created_objects++;
+	 g_lui_main->total_created_objects++;
 
-	lui_scene_t *initial_scene = malloc(sizeof(*initial_scene));
+	lui_scene_t *initial_scene =  _lui_mem_alloc(sizeof(*initial_scene));
 
 	initial_scene->font = NULL;
 	initial_scene->bg_image = NULL;
@@ -1829,16 +1854,16 @@ lui_obj_t* lui_scene_create()
 	// object type
 	obj->obj_type = LUI_OBJ_SCENE;
 	// object common style
-	obj->common_style.width = g_lui_main.disp_drv->display_hor_res;
-	obj->common_style.height = g_lui_main.disp_drv->display_vert_res;
+	obj->common_style.width =  g_lui_main->disp_drv->display_hor_res;
+	obj->common_style.height =  g_lui_main->disp_drv->display_vert_res;
 	obj->common_style.bg_color = LUI_STYLE_SCENE_BG_COLOR;	
 	
-	obj->index = g_lui_main.total_scenes;
+	//obj->index =  g_lui_main->total_scenes;
 	obj->obj_main_data = (void *)initial_scene;
 
 	_lui_object_set_need_refresh(obj);
-	g_lui_main.scenes[obj->index] = obj;
-	g_lui_main.total_scenes++;
+	 //g_lui_main->scenes[obj->index] = obj;
+	 g_lui_main->total_scenes++;
 
 	return obj;
 }
@@ -1909,10 +1934,10 @@ void lui_scene_set_popup(lui_obj_t *obj, lui_obj_t *obj_scene)
 	scene->obj_popup = obj;
 
 	// when setting a popup, reset the current active object. because now only popup will get input
-	if (g_lui_main.active_obj != NULL)
+	if ( g_lui_main->active_obj != NULL)
 	{
-		g_lui_main.active_obj->state = LUI_STATE_IDLE;
-		g_lui_main.active_obj = NULL;
+		 g_lui_main->active_obj->state = LUI_STATE_IDLE;
+		 g_lui_main->active_obj = NULL;
 	}
 	
 
@@ -1946,13 +1971,13 @@ void lui_scene_set_active(lui_obj_t *obj_scene)
 	if (obj_scene->obj_type != LUI_OBJ_SCENE)
 		return;
 	
-	g_lui_main.active_scene = obj_scene;
+	 g_lui_main->active_scene = obj_scene;
 	_lui_object_set_need_refresh(obj_scene);
 }
 
 lui_obj_t* lui_scene_get_active()
 {
-	return g_lui_main.active_scene;
+	return  g_lui_main->active_scene;
 }
 
 /*-------------------------------------------------------------------------------
@@ -1967,7 +1992,7 @@ lui_obj_t* lui_scene_get_active()
 
 lui_obj_t* _lui_object_create()
 {
-	lui_obj_t *obj = malloc(sizeof(*obj));
+	lui_obj_t *obj =  _lui_mem_alloc(sizeof(*obj));
 
 	obj->x = 0;
 	obj->y = 0;
@@ -1977,7 +2002,7 @@ lui_obj_t* _lui_object_create()
 	obj->obj_event_cb = NULL;
 	obj->needs_refresh = 1;
 	obj->visible = 1;
-	obj->index = -1;
+	//obj->index_in_pool = -1;
 	obj->parent = NULL;
 	obj->first_child = NULL;
 	obj->next_sibling = NULL;
@@ -1986,18 +2011,19 @@ lui_obj_t* _lui_object_create()
 	return obj;
 }
 
-void lui_object_add_to_parent(lui_obj_t *obj, lui_obj_t *parent_obj)
+void lui_object_add_to_parent(lui_obj_t *obj_child, lui_obj_t *obj_parent)
 {
-	if (obj == NULL || parent_obj == NULL)
+	if (obj_child == NULL || obj_parent == NULL)
 		return;
 	// scene cannot be added to any parent, so return
-	if (obj->obj_type == LUI_OBJ_SCENE)
+	if (obj_child->obj_type == LUI_OBJ_SCENE)
 		return;
 	// only panel and scene can be parent, otherwise return
-	if (parent_obj->obj_type != LUI_OBJ_PANEL && parent_obj->obj_type != LUI_OBJ_SCENE)
+	if (obj_parent->obj_type != LUI_OBJ_PANEL && obj_parent->obj_type != LUI_OBJ_SCENE)
 		return;
 
     //add the ui element with a new index to scene only if no parent already exists
+<<<<<<< HEAD
     if (obj->parent != NULL)
 		return;
 	
@@ -2013,6 +2039,30 @@ void lui_object_add_to_parent(lui_obj_t *obj, lui_obj_t *parent_obj)
 	// Common things to do
 	obj->parent = parent_obj;
 	_lui_object_set_need_refresh(obj);
+=======
+    if (obj_child->parent != NULL)
+		return;
+	
+
+	if (obj_parent->first_child == NULL)
+    {
+        obj_parent->first_child = obj_child;
+    }
+    else
+    {
+        lui_obj_t *next_child = obj_parent->first_child;
+        
+        while (next_child->next_sibling != NULL)
+        {
+            next_child = next_child->next_sibling;
+        }
+        
+        next_child->next_sibling = obj_child;
+    }
+    obj_child->parent = obj_parent;
+	obj_parent->children_count++;
+	_lui_object_set_need_refresh(obj_child);
+>>>>>>> ea8fa2cf8a7a5b928cb9322a3ca849b66fbe1d91
 }
 
 void lui_object_remove_from_parent(lui_obj_t *obj)
@@ -2020,30 +2070,27 @@ void lui_object_remove_from_parent(lui_obj_t *obj)
 	if (obj == NULL)
 		return;
 	// If item's or parent's index is -1, return
-	if (obj->index == -1 || obj->parent == NULL)
+	if (obj->parent == NULL)
     	return;
 
-	for (int i = obj->index; i < obj->parent->children_count - 1; i++)
-	{
-		obj->parent->children[i] = obj->parent->children[i+1];
-		obj->parent->children[i]->index = i;
-	}
+	// if object is the head (first child)
+    if (obj == obj->parent->first_child)
+    {
+        obj->parent->first_child = obj->next_sibling;
+    }
+    else
+    {
+        lui_obj_t *child = obj->parent->first_child;
+        while (child->next_sibling != obj)
+        {
+            child = child->next_sibling;
+        }
+        child->next_sibling = obj->next_sibling;
+    }
 
-	obj->parent->children_count--;
-
-	// resize the array
-	if (obj->parent->children_count == 0)
-	{
-		free(obj->parent->children);
-		obj->parent->children = NULL;
-	}
-	else
-	{
-		obj->parent->children = realloc(obj->parent->children, sizeof(lui_obj_t *) * (obj->parent->children_count));
-	}
-	
 	// common things to do
-	obj->index = -1;
+	obj->parent->children_count--; 
+    obj->next_sibling = NULL;
 	_lui_object_set_need_refresh(obj->parent);
 	obj->parent = NULL;
 }
@@ -2072,29 +2119,32 @@ void lui_object_set_position(uint16_t x, uint16_t y, lui_obj_t *obj)
 		obj->y = y;
 	}
 	
-	// setting position of children as well.
-	for(uint8_t i = 0; i < obj->children_count; i++)
+	lui_obj_t *child_of_root = obj->first_child;
+	while (child_of_root != NULL)
 	{
-		lui_obj_t *obj_stack[LUI_MAX_OBJECTS]; //30 is maximum no ob objects in ascene. replace it with macro later
-		uint8_t stack_cnt = 0;
-		obj_stack[stack_cnt++] = obj->children[i];	//push child to stack
+		lui_obj_t *obj_stack[LUI_MAX_OBJECTS] = {NULL};
+        uint8_t stack_counter = 0;
+        obj_stack[stack_counter++] = child_of_root;
+        child_of_root = child_of_root->next_sibling;
 		
 		// loop until stack is empty. in this way all children (and their children too) will be traversed
-		while (stack_cnt > 0)
+		while (stack_counter > 0)
 		{
-			// get current object (child) from stack
-			lui_obj_t *obj_current = obj_stack[--stack_cnt];	//pop
+			// pop from stack
+			lui_obj_t *child = obj_stack[--stack_counter]; 
 
-			obj_current->x = obj_current->x + (obj->x - obj_old_x); // offset the child (currewnt obj) based on parent
-			obj_current->y = obj_current->y + (obj->y - obj_old_y);
+			child->x = child->x + (obj->x - obj_old_x); // offset the child (currewnt obj) based on parent
+			child->y = child->y + (obj->y - obj_old_y);
 
-			// push current object's children into stack
-			for (uint8_t j = 0; j < obj_current->children_count; j++)
+			// get the child of current object
+            child = child->first_child;
+			// push all children of current object into stack too
+			while (child != NULL)
 			{
-				// for safety, if stack is about to overflow, return result
-				if (stack_cnt > LUI_MAX_OBJECTS)
-					return;
-				obj_stack[stack_cnt++] = obj_current->children[j]; // push to stack
+				// push child to stack
+				obj_stack[stack_counter++] = child; 
+				// get sibling of the child
+                child = child->next_sibling;
 			}
 
 		}
@@ -2212,24 +2262,30 @@ void lui_object_set_visibility(uint8_t visible, lui_obj_t *obj)
 		return;
 
 	obj->visible = visible;
-	for (uint8_t i = 0; i < obj->children_count; i++)
+
+	lui_obj_t *child_of_root = obj->first_child;
+	while (child_of_root != NULL)
 	{
 		lui_obj_t *obj_stack[LUI_MAX_OBJECTS] = {NULL};
-		uint8_t stack_cnt = 0;
-		obj_stack[stack_cnt++] = obj->children[i];
+        uint8_t stack_counter = 0;
+        obj_stack[stack_counter++] = child_of_root;
+        child_of_root = child_of_root->next_sibling;
 
-		while (stack_cnt > 0)
+		while (stack_counter > 0)
 		{
-			lui_obj_t *obj_current = obj_stack[--stack_cnt]; //pop from stack
-			obj_current->visible = visible;
+			// pop from stack
+			lui_obj_t *child = obj_stack[--stack_counter]; 
+			child->visible = visible;
 
+			// get the child of current object
+            child = child->first_child;
 			// push all children of current object into stack too
-			for (uint8_t j = 0; j < obj_current->children_count; j++)
+			while (child != NULL)
 			{
-				// for safety, if stack is about to overflow, return
-				if (stack_cnt > LUI_MAX_OBJECTS)
-					return;
-				obj_stack[stack_cnt++] = obj_current->children[j]; // push to stack
+				// push child to stack
+				obj_stack[stack_counter++] = child; 
+				// get sibling of the child
+                child = child->next_sibling;
 			}
 		}
 	}
@@ -2252,15 +2308,15 @@ uint8_t _lui_check_if_active_obj(lui_touch_input_data_t input, lui_obj_t *obj)
 		input.y >= obj->y &&
 		input.y < obj->y + obj->common_style.height)
 	{
-		g_lui_main.active_obj = obj;
+		 g_lui_main->active_obj = obj;
 		return 1;
 	}
 	else
 	{
 		// in case input is not on "obj" and previous "active_obj" is same as "obj",
 		// set "input_on_obj" to NULL.
-		if (g_lui_main.active_obj == obj)
-			g_lui_main.active_obj = NULL;
+		if ( g_lui_main->active_obj == obj)
+			 g_lui_main->active_obj = NULL;
 		return 0;
 	}	
 }
@@ -2343,10 +2399,10 @@ lui_obj_t* _lui_process_touch_input_of_act_scene()
 {	
 	uint8_t scan_all_objs_flag = 0;
 	lui_obj_t *obj_caused_cb = NULL;
-	lui_obj_t *last_active_obj = g_lui_main.active_obj;
-	lui_scene_t *scene_main_data = (lui_scene_t *)(g_lui_main.active_scene->obj_main_data);
+	lui_obj_t *last_active_obj =  g_lui_main->active_obj;
+	lui_scene_t *scene_main_data = (lui_scene_t *)( g_lui_main->active_scene->obj_main_data);
 	lui_touch_input_data_t input_data;
-	g_lui_main.touch_input_dev->read_touch_input_cb(&input_data);
+	 g_lui_main->touch_input_dev->read_touch_input_cb(&input_data);
 
 	if (last_active_obj == NULL)
 	{
@@ -2355,11 +2411,11 @@ lui_obj_t* _lui_process_touch_input_of_act_scene()
 
 	else
 	{
-		// sets object parameters based on input. also may modify g_lui_main.active_obj
+		// sets object parameters based on input. also may modify  g_lui_main->active_obj
 		_lui_set_obj_props_on_input(input_data, last_active_obj);
 		if (last_active_obj->event != LUI_EVENT_NONE)
 		{
-			if (g_lui_main.active_obj != last_active_obj /* *state == LUI_STATE_IDLE*/)
+			if ( g_lui_main->active_obj != last_active_obj /* *state == LUI_STATE_IDLE*/)
 			{
 				scan_all_objs_flag = 1;
 			}
@@ -2383,7 +2439,7 @@ lui_obj_t* _lui_process_touch_input_of_act_scene()
 			obj_caused_cb = _lui_scan_all_obj_for_input(input_data, scene_main_data->obj_popup, last_active_obj);
 		// else scan is for active scene and its children
 		else
-			obj_caused_cb = _lui_scan_all_obj_for_input(input_data, g_lui_main.active_scene, last_active_obj);
+			obj_caused_cb = _lui_scan_all_obj_for_input(input_data,  g_lui_main->active_scene, last_active_obj);
 		
 		if (obj_caused_cb == NULL)
 			obj_caused_cb = last_active_obj;
@@ -2404,29 +2460,33 @@ lui_obj_t* _lui_scan_all_obj_for_input(lui_touch_input_data_t input_data, lui_ob
 	if (obj_caused_cb != NULL)
 		return obj_caused_cb;
 
-	for (uint8_t i = 0; i < obj_root->children_count; i++)
+	lui_obj_t *child_of_root = obj_root->first_child;
+	while (child_of_root != NULL)
 	{
-		lui_obj_t *obj_stack[30]; //30 is maximum no ob objects in ascene. replace it with macro later
-		uint8_t stack_cnt = 0;
-		obj_stack[stack_cnt++] = obj_root->children[i];	//push to stack
+		lui_obj_t *obj_stack[LUI_MAX_OBJECTS] = {NULL};
+        uint8_t stack_counter = 0;
+        obj_stack[stack_counter++] = child_of_root;
+        child_of_root = child_of_root->next_sibling;
 		
 		// loop until stack is empty. in this way all children (and their children too) will be traversed
-		while (stack_cnt > 0)
+		while (stack_counter > 0)
 		{
-			// get current object from stack
-			lui_obj_t *obj_current = obj_stack[--stack_cnt];	//pop
+			// pop from stack
+			lui_obj_t *child = obj_stack[--stack_counter]; 
 
-			obj_caused_cb = _lui_scan_individual_object_for_input(input_data, obj_current, obj_excluded);
+			obj_caused_cb = _lui_scan_individual_object_for_input(input_data, child, obj_excluded);
 			if (obj_caused_cb != NULL)
 				return obj_caused_cb;
 
-			// push current object's children into stack
-			for (uint8_t j = 0; j < obj_current->children_count; j++)
+			// get the child of current object
+            child = child->first_child;
+			// push all children of current object into stack too
+			while (child != NULL)
 			{
-				// for safety, if stack is about to overflow, return result
-				if (stack_cnt > LUI_MAX_OBJECTS)
-					return obj_caused_cb;
-				obj_stack[stack_cnt++] = obj_current->children[j]; // push to stack
+				// push child to stack
+				obj_stack[stack_counter++] = child; 
+				// get sibling of the child
+                child = child->next_sibling;
 			}
 
 		}
@@ -2453,7 +2513,7 @@ lui_obj_t* _lui_scan_individual_object_for_input(lui_touch_input_data_t input_da
 		obj->obj_type == LUI_OBJ_CHECKBOX ||
 		obj->obj_type == LUI_OBJ_SLIDER)
 	{
-		// sets object parameters based on input. also, may modify g_lui_main.active_obj
+		// sets object parameters based on input. also, may modify  g_lui_main->active_obj
 		_lui_set_obj_props_on_input(input_data, obj);
 		if (obj->event != LUI_EVENT_NONE)
 		{
@@ -2481,7 +2541,7 @@ lui_obj_t* _lui_scan_individual_object_for_input(lui_touch_input_data_t input_da
 
 lui_dispdrv_t* lui_dispdrv_create()
 {
-	lui_dispdrv_t *initial_disp_drv = malloc(sizeof(*initial_disp_drv));
+	lui_dispdrv_t *initial_disp_drv =  _lui_mem_alloc(sizeof(*initial_disp_drv));
 
 	initial_disp_drv->draw_pixels_area_cb = NULL;
 	initial_disp_drv->render_complete_cb = NULL;
@@ -2495,13 +2555,13 @@ void lui_dispdrv_register(lui_dispdrv_t *dispdrv)
 {
 	if (dispdrv == NULL)
 		return;
-	g_lui_main.disp_drv = dispdrv;
+	 g_lui_main->disp_drv = dispdrv;
 }
 
 void* lui_dispdrv_destroy(lui_dispdrv_t *dispdrv)
 {
 	if (dispdrv != NULL)
-		free(dispdrv);
+		 _lui_mem_free(dispdrv);
 	return NULL;
 }
 
@@ -2539,7 +2599,7 @@ void lui_dispdrv_set_render_complete_cb(void (*render_complete_cb)(), lui_dispdr
 
 lui_touch_input_dev_t* lui_touch_inputdev_create()
 {
-	lui_touch_input_dev_t *initial_touch_inputdev = malloc(sizeof(*initial_touch_inputdev));
+	lui_touch_input_dev_t *initial_touch_inputdev =  _lui_mem_alloc(sizeof(*initial_touch_inputdev));
 
 	initial_touch_inputdev->read_touch_input_cb = NULL;
 	// initial_touch_inputdev.touch_data.is_pressed = 0;
@@ -2553,7 +2613,7 @@ void lui_touch_inputdev_register (lui_touch_input_dev_t *inputdev)
 {
 	if (inputdev == NULL)
 		return;
-	g_lui_main.touch_input_dev = inputdev;
+	 g_lui_main->touch_input_dev = inputdev;
 }
 
 void lui_touch_inputdev_set_read_input_cb(void (*read_touch_input_cb)(lui_touch_input_data_t *inputdata), lui_touch_input_dev_t *inputdev)
@@ -2565,7 +2625,7 @@ void lui_touch_inputdev_set_read_input_cb(void (*read_touch_input_cb)(lui_touch_
 
 lui_dpad_input_dev_t* lui_dpad_inputdev_create()
 {
-	lui_dpad_input_dev_t *initial_dpad_inputdev = malloc(sizeof(*initial_dpad_inputdev));
+	lui_dpad_input_dev_t *initial_dpad_inputdev =  _lui_mem_alloc(sizeof(*initial_dpad_inputdev));
 
 	initial_dpad_inputdev->read_dpad_input_cb = NULL;
 	// initial_dpad_inputdev.dpad_data.is_up_pressed = 0;
@@ -2582,7 +2642,7 @@ void lui_dpad_inputdev_register (lui_dpad_input_dev_t *inputdev)
 {
 	if (inputdev == NULL)
 		return;
-	g_lui_main.dpad_input_dev = inputdev;
+	 g_lui_main->dpad_input_dev = inputdev;
 }
 
 void lui_dpad_inputdev_set_read_input_cb(void (*read_dpad_input_cb)(lui_dpad_input_data_t *inputdata), lui_dpad_input_dev_t *inputdev)
@@ -2610,25 +2670,30 @@ void _lui_object_render_parent_with_children(lui_obj_t *obj_parent)
 	// first render the parent, then render all its children in a loop
 	_lui_object_render(obj_parent);
 
-	for (uint8_t i = 0; i < obj_parent->children_count; i++)
+	lui_obj_t *child_of_root = obj_parent->first_child;
+	while (child_of_root != NULL)
 	{
 		lui_obj_t *obj_stack[LUI_MAX_OBJECTS] = {NULL};
-		uint8_t stack_cnt = 0;
-		obj_stack[stack_cnt++] = obj_parent->children[i];
+		uint8_t stack_counter = 0;
+        obj_stack[stack_counter++] = child_of_root;
+        child_of_root = child_of_root->next_sibling;
 
-		while (stack_cnt > 0)
+		while (stack_counter > 0)
 		{
-			lui_obj_t *obj_current = obj_stack[--stack_cnt];
+			// pop from stack
+			lui_obj_t *child = obj_stack[--stack_counter]; 
 
-			_lui_object_render(obj_current);
+			_lui_object_render(child);
 
-			// push current object's children into stack
-			for (uint8_t j = 0; j < obj_current->children_count; j++)
+			// get the child of current object
+            child = child->first_child;
+			// push all children of current object into stack too
+			while (child != NULL)
 			{
-				// for safety, if stack is about to overflow, return
-				if (stack_cnt > LUI_MAX_OBJECTS)
-					return;
-				obj_stack[stack_cnt++] = obj_current->children[j]; // push to stack
+				// push child to stack
+				obj_stack[stack_counter++] = child; 
+				// get sibling of the child
+                child = child->next_sibling;
 			}
 		}
 	}
@@ -2689,24 +2754,30 @@ void _lui_object_set_need_refresh(lui_obj_t *obj)
 		return;
 
 	obj->needs_refresh = 1;
-	for (uint8_t i = 0; i < obj->children_count; i++)
+
+	lui_obj_t *child_of_root = obj->first_child;
+	while (child_of_root != NULL)
 	{
 		lui_obj_t *obj_stack[LUI_MAX_OBJECTS] = {NULL};
-		uint8_t stack_cnt = 0;
-		obj_stack[stack_cnt++] = obj->children[i];
+        uint8_t stack_counter = 0;
+        obj_stack[stack_counter++] = child_of_root;
+        child_of_root = child_of_root->next_sibling;
 
-		while (stack_cnt > 0)
+		while (stack_counter > 0)
 		{
-			lui_obj_t *obj_current = obj_stack[--stack_cnt]; //pop from stack
-			obj_current->needs_refresh = 1;
+			// pop from stack
+			lui_obj_t *child = obj_stack[--stack_counter]; 
+			child->needs_refresh = 1;
 
+			// get the child of current object
+            child = child->first_child;
 			// push all children of current object into stack too
-			for (uint8_t j = 0; j < obj_current->children_count; j++)
+			while (child != NULL)
 			{
-				// for safety, if stack is about to overflow, return
-				if (stack_cnt > LUI_MAX_OBJECTS)
-					return;
-				obj_stack[stack_cnt++] = obj_current->children[j]; // push to stack
+				// push child to stack
+				obj_stack[stack_counter++] = child; 
+				// get sibling of the child
+                child = child->next_sibling;
 			}
 		}
 	}
@@ -2715,9 +2786,9 @@ void _lui_object_set_need_refresh(lui_obj_t *obj)
 
 tFont* _lui_get_font_from_active_scene()
 {
-	if (g_lui_main.active_scene == NULL)
+	if ( g_lui_main->active_scene == NULL)
 		return NULL;
-	lui_scene_t *act_scene = (lui_scene_t *)(g_lui_main.active_scene->obj_main_data);
+	lui_scene_t *act_scene = (lui_scene_t *)( g_lui_main->active_scene->obj_main_data);
 	return (act_scene->font);
 }
 
@@ -2864,14 +2935,14 @@ void _lui_draw_char(uint16_t x, uint16_t y, uint16_t fore_color, const tImage *g
 				 * So, here we're doing nothing when pixel is blank
 				 */
 				// Draw the background color
-				//g_lui_main.disp_drv->draw_pixels_area_cb(temp_x, temp_y, 1, 1, back_color);
+				// g_lui_main->disp_drv->draw_pixels_area_cb(temp_x, temp_y, 1, 1, back_color);
 			}
 
 			//if pixel is not blank
 			else
 			{
 				// Draw the foreground color
-				g_lui_main.disp_drv->draw_pixels_area_cb(temp_x, temp_y, 1, 1, fore_color);
+				 g_lui_main->disp_drv->draw_pixels_area_cb(temp_x, temp_y, 1, 1, fore_color);
 			}
 
 			glyph_data <<= 1;
@@ -2929,11 +3000,11 @@ void _lui_draw_line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t 
 
 	if (x0 == x1)	//vertical line
 	{
-		g_lui_main.disp_drv->draw_pixels_area_cb(x0, (y0 < y1 ? y0 : y1), (uint16_t)line_width, (uint16_t)abs(y1 - y0 + 1), color);
+		 g_lui_main->disp_drv->draw_pixels_area_cb(x0, (y0 < y1 ? y0 : y1), (uint16_t)line_width, (uint16_t)abs(y1 - y0 + 1), color);
 	}
 	else if (y0 == y1)		//horizontal line
 	{
-		g_lui_main.disp_drv->draw_pixels_area_cb((x0 < x1 ? x0 : x1), y0, (uint16_t)abs(x1 - x0 + 1), (uint16_t)line_width, color);
+		 g_lui_main->disp_drv->draw_pixels_area_cb((x0 < x1 ? x0 : x1), y0, (uint16_t)abs(x1 - x0 + 1), (uint16_t)line_width, color);
 	}
 	else
 	{
@@ -2977,7 +3048,7 @@ void _lui_plot_line_low(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint
 
 	while (x <= x1)
 	{
-		g_lui_main.disp_drv->draw_pixels_area_cb(x, y, line_width, line_width, color);
+		 g_lui_main->disp_drv->draw_pixels_area_cb(x, y, line_width, line_width, color);
 
 		if (D > 0)
 		{
@@ -3010,7 +3081,7 @@ void _lui_plot_line_high(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uin
 
 	while (y <= y1)
 	{
-		g_lui_main.disp_drv->draw_pixels_area_cb(x, y, line_width, line_width, color);
+		 g_lui_main->disp_drv->draw_pixels_area_cb(x, y, line_width, line_width, color);
 
 		if (D > 0)
 		{
@@ -3040,7 +3111,7 @@ void _lui_draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t line
  */
 void _lui_draw_rect_fill(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color)
 {
-	g_lui_main.disp_drv->draw_pixels_area_cb(x, y, w, h, color);
+	 g_lui_main->disp_drv->draw_pixels_area_cb(x, y, w, h, color);
 }
 
 /*
@@ -3060,10 +3131,10 @@ uint8_t _lui_disp_drv_check()
 {
 	uint8_t status = 0;
 	// if no display driver is registered, return
-	if (g_lui_main.disp_drv == NULL)
+	if ( g_lui_main->disp_drv == NULL)
 		status = 0;
 	// If no callback function (for drawing) is provided by user, return
-	else if (g_lui_main.disp_drv->draw_pixels_area_cb == NULL)
+	else if ( g_lui_main->disp_drv->draw_pixels_area_cb == NULL)
 		status = 0;
 	else
 		status = 1;
@@ -3074,6 +3145,157 @@ uint8_t _lui_disp_drv_check()
 uint16_t lui_rgb(uint16_t red, uint16_t green, uint16_t blue)
 {
 	return _LUI_RGB(red, green, blue);
+}
+
+void _lui_mem_init()
+{
+    g_mem_block.mem_start = &(g_mem_block.mem_block[0]);
+    g_mem_block.mem_end = g_mem_block.mem_start + LUI_MEM_MAX_SIZE;
+    g_mem_block.mem_chunk_count = 0;
+    g_mem_block.mem_allocated = 0;
+    
+    _lui_mem_chunk_t *first_chunk = (_lui_mem_chunk_t *)(g_mem_block.mem_start);
+    first_chunk->next_chunk = NULL;
+    first_chunk->prev_chunk = NULL;
+    first_chunk->alloc_size = 0;
+    first_chunk->alloc_status = LUI_MEM_CHUNK_STATUS_FREE;
+}
+
+void* _lui_mem_alloc(uint16_t element_size)
+{
+    _lui_mem_chunk_t *chunk_metadata = (_lui_mem_chunk_t *)(g_mem_block.mem_start);
+    
+    
+    uint16_t chunk_metadata_size = sizeof(_lui_mem_chunk_t);
+    uint8_t chunk_type =  LUI_MEM_CHUNK_TYPE_NONE;
+    
+    if ((element_size + chunk_metadata_size) > ( LUI_MEM_MAX_SIZE - (g_mem_block.mem_allocated + g_mem_block.mem_chunk_count * chunk_metadata_size)))
+    {
+        return NULL;
+    }
+    while (g_mem_block.mem_end > (uint8_t *)chunk_metadata + element_size + chunk_metadata_size)
+    {
+        if (chunk_metadata->alloc_status ==  LUI_MEM_CHUNK_STATUS_FREE)
+        {
+            if (chunk_metadata->alloc_size == 0 ||
+                chunk_metadata->alloc_size > (element_size + chunk_metadata_size))
+            {
+                chunk_type =  LUI_MEM_CHUNK_TYPE_NEW;
+                break;
+            }
+            else if (chunk_metadata->alloc_size == (element_size + chunk_metadata_size))
+            {
+                chunk_type =  LUI_MEM_CHUNK_TYPE_REUSE;
+                break;
+            }
+        }
+        chunk_metadata = (_lui_mem_chunk_t *)((uint8_t *)chunk_metadata + chunk_metadata->alloc_size);
+    }
+    
+    if (chunk_type !=  LUI_MEM_CHUNK_TYPE_NONE)
+    {
+        chunk_metadata->alloc_status =  LUI_MEM_CHUNK_STATUS_USED;
+        if (chunk_type ==  LUI_MEM_CHUNK_TYPE_NEW)
+        {
+            /* Resize the chunk */
+            chunk_metadata->alloc_size = element_size + chunk_metadata_size;
+            /* Set next chunk address */
+            chunk_metadata->next_chunk = (_lui_mem_chunk_t *)((uint8_t *)chunk_metadata + chunk_metadata->alloc_size);
+            /* Set next chunk's previous chunk address which is the current chunk */
+            chunk_metadata->next_chunk->prev_chunk = chunk_metadata;
+            /* Increase chunk count by 1 */
+            ++(g_mem_block.mem_chunk_count);
+        }
+
+        g_mem_block.mem_allocated += element_size;
+        return ((uint8_t *)chunk_metadata + chunk_metadata_size);
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
+
+void _lui_mem_free(void *ptr)
+{
+    _lui_mem_chunk_t *chunk_metadata = (_lui_mem_chunk_t *)ptr;
+    // Get the actual chunk_metadata
+    --chunk_metadata;
+    
+    if (chunk_metadata == NULL)
+    {
+        return;
+    }
+    if (chunk_metadata->alloc_status == LUI_MEM_CHUNK_STATUS_FREE)
+    {
+        return;
+    }
+    
+    chunk_metadata->alloc_status =  LUI_MEM_CHUNK_STATUS_FREE;
+    g_mem_block.mem_allocated -= chunk_metadata->alloc_size - sizeof(_lui_mem_chunk_t);
+    
+    /* If only one chunk is there, set the chunk count to 0 */
+    if (g_mem_block.mem_chunk_count == 1)
+    {
+        g_mem_block.mem_chunk_count = 0;
+        chunk_metadata->alloc_size = 0;
+        chunk_metadata->next_chunk = NULL;
+        chunk_metadata->prev_chunk = NULL;
+        
+        return;
+    }
+    
+    // merge with next chunk if that is free too
+    /* Note: Theoretically, for the right-most chunk, `next_chunk` should be NULL and this condition
+     * should not be called. BUT, the right-most chunk actually has a not-null `next_chunk` which is
+     * set during allocation to point out which one will be it's next chunk.
+     * So, even for right-most chunk, this condition is satisfied and `chunk_count` is decremented
+     * even though nothing is "actually" merged
+     */
+    if (chunk_metadata->next_chunk != NULL)
+    {
+        if (chunk_metadata->next_chunk->alloc_status == LUI_MEM_CHUNK_STATUS_FREE)
+        {
+            /* merge next chunk with current chunk and increase current chunk's size */
+            chunk_metadata->alloc_size += chunk_metadata->next_chunk->alloc_size;
+            chunk_metadata->next_chunk = chunk_metadata->next_chunk->next_chunk;
+            if (chunk_metadata->next_chunk != NULL)
+            {
+                chunk_metadata->next_chunk->prev_chunk = chunk_metadata;
+            }
+            /* As two chunks are merged, chunk count reduced*/
+            --(g_mem_block.mem_chunk_count);
+        }
+    }
+    
+    // merge with previous chunk if that is free too
+    if (chunk_metadata->prev_chunk != NULL)
+    {
+        if (chunk_metadata->prev_chunk->alloc_status == LUI_MEM_CHUNK_STATUS_FREE)
+        {
+            /* merge current chunk with previous chunk and increase previous chunk's size */
+            chunk_metadata->prev_chunk->alloc_size += chunk_metadata->alloc_size;
+            chunk_metadata->prev_chunk->next_chunk = chunk_metadata->next_chunk;
+            if (chunk_metadata->next_chunk != NULL)
+            {
+                chunk_metadata->next_chunk->prev_chunk = chunk_metadata->prev_chunk;
+            }
+            /* As two chunks are merged, chunk count reduced*/
+            --(g_mem_block.mem_chunk_count);
+        }
+    }
+    
+    /* If chunk count becomes 0 after merging, set the remaining chunk's size to 0
+     * Also set its prev_chunk and next_chunk to NULL
+     */
+    if (g_mem_block.mem_chunk_count == 0)
+    {
+        _lui_mem_chunk_t *first_chunk = (_lui_mem_chunk_t *)(g_mem_block.mem_start);
+        first_chunk->alloc_size = 0;
+        first_chunk->next_chunk = NULL;
+        first_chunk->prev_chunk = NULL;
+    }  
 }
 /*-------------------------------------------------------------------------------
  * 							END
