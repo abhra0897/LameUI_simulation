@@ -240,17 +240,10 @@ typedef struct _lui_obj_s
 	uint8_t obj_type;
 
 	struct _lui_obj_s *parent;
-<<<<<<< HEAD
-	// struct _lui_obj_s **children;
-	struct _lui_obj_s *first_child;
-	struct _lui_obj_s *next_sibling;
-	struct _lui_obj_s *prev_sibling;
-=======
 	uint8_t children_count;
 	struct _lui_obj_s *first_child;
 	struct _lui_obj_s *next_sibling;
 	
->>>>>>> ea8fa2cf8a7a5b928cb9322a3ca849b66fbe1d91
 
 	void *obj_main_data;
 }lui_obj_t;

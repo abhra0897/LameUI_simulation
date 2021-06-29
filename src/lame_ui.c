@@ -2023,23 +2023,6 @@ void lui_object_add_to_parent(lui_obj_t *obj_child, lui_obj_t *obj_parent)
 		return;
 
     //add the ui element with a new index to scene only if no parent already exists
-<<<<<<< HEAD
-    if (obj->parent != NULL)
-		return;
-	
-
-	obj->index = parent_obj->children_count++;
-	if (parent_obj->children == NULL)
-		parent_obj->children = malloc(sizeof(parent_obj->children));
-	else
-		parent_obj->children = realloc(parent_obj->children, sizeof(parent_obj->children) * (parent_obj->children_count));
-	parent_obj->children[obj->index] = (lui_obj_t *)obj;
-
-
-	// Common things to do
-	obj->parent = parent_obj;
-	_lui_object_set_need_refresh(obj);
-=======
     if (obj_child->parent != NULL)
 		return;
 	
@@ -2062,7 +2045,6 @@ void lui_object_add_to_parent(lui_obj_t *obj_child, lui_obj_t *obj_parent)
     obj_child->parent = obj_parent;
 	obj_parent->children_count++;
 	_lui_object_set_need_refresh(obj_child);
->>>>>>> ea8fa2cf8a7a5b928cb9322a3ca849b66fbe1d91
 }
 
 void lui_object_remove_from_parent(lui_obj_t *obj)
