@@ -1,0 +1,8 @@
+1. send flush_ready signal from drawing functions to display driver callbacks.
+2. Set object text in such way so that scope doesn't matter. 
+	Idea: Pass the char* along with length and malloc/realloc it in the LameUI. In this way the text will be always available regardless the caller scope
+3. Try to find more optimum solution for auto_area functions
+4. Try to add function for centering elements
+5. Extensive test, debug, and improvement of all input processing functions
+6. dpad input processing
+7. Rethinking about label and button auto size
