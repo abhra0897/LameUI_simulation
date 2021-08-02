@@ -488,7 +488,7 @@ int main (int argc, char** argv)
 	lui_object_set_area(80, 28, popup_btn);
 	lui_object_set_area(300, 140, g_popup_panel);
 
-
+	lui_scene_set_popup_locked(0, g_scene_one);
 	
 	lui_button_set_label_text("OK", popup_btn);
 	lui_button_set_label_font(&font_microsoft_16, popup_btn);
