@@ -7,7 +7,7 @@
             "includePath": [
                 "FontsEmbedded",
                 "inc",
-                "LameUI/inc",
+                "LameUI",
                 "."       
             ],
             "cStandard": "c11"
