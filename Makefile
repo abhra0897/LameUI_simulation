@@ -17,7 +17,7 @@ TARGET=Sim
 # User source directory
 SRCDIR_USER	 	 =  src/
 # LameUI source directory
-SRCDIR_LAMEUI	 =  LameUI/src/
+SRCDIR_LAMEUI	 =  LameUI/
 # Objects directory
 OBJDIR		 =  obj/
 # Target directory
@@ -40,7 +40,7 @@ OBJ			 =  $(SRCS:.c=.o)
 # Includes for user files(headers)
 INCLS		 =  -Iinc
 # Include for lameui files
-INCLS 		+=  -ILameUI/inc
+INCLS 		+=  -ILameUI/
 # Includes for Font and bitmap related files
 INCLS 		+=  -IFontsEmbedded
 #--------------------------------------------------------------------

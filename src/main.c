@@ -172,7 +172,7 @@ void enable_wifi_and_bt_event_handler(lui_obj_t *obj)
 				lui_scene_set_popup(g_popup_panel, g_scene_one);
 			}
 		}
-		else if (obj = g_swtch_enable_bluetooth)
+		else if (obj == g_swtch_enable_bluetooth)
 		{
 			if (val == 1)
 			{
@@ -469,8 +469,6 @@ int main (int argc, char** argv)
 	lui_object_set_area(240, 120, lbl_long_text);
 	lui_object_set_border_visibility(1, lbl_long_text);
 
-
-
 	// -------------------------------------------
 	// create popup group
 	g_popup_panel = lui_panel_create();
@@ -572,6 +570,7 @@ int main (int argc, char** argv)
 	lui_object_set_area(270, 20, slider1);
 	lui_slider_set_range(-100, 100, slider1);
 	lui_slider_set_value(50, slider1);
+	lui_object_set_border_visibility(1, slider1);
 	lui_object_set_callback(slider_event_handler, slider1);
 
 	// a label to show its value

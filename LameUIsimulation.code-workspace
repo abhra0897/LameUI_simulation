@@ -10,7 +10,8 @@
 			"freeglut_std.h": "c",
 			"gl.h": "c",
 			"font_fixedsys_mono_16.h": "c",
-			"font_ubuntu_16.h": "c"
+			"font_ubuntu_16.h": "c",
+			"lame_ui.h": "c"
 		}
 	}
 }
