@@ -22,22 +22,25 @@
 
 // following UI elements are made global so we can access them in the event handler
 lui_touch_input_data_t g_input;
-lui_obj_t *g_scene_one;
-lui_obj_t *g_scene_two;
-lui_obj_t *g_lbl_cntr_value;
-lui_obj_t *g_popup_panel;
-lui_obj_t *g_popup_label;
-lui_obj_t *g_grph;
-lui_obj_t *g_btn_count;
-lui_obj_t *g_btn_reset;
-lui_obj_t *g_swtch_enable_bluetooth;
-lui_obj_t *g_swtch_enable_wifi;
-lui_obj_t *g_btn_nxt_scn;
-lui_obj_t *g_btn_prev_scn;
-lui_obj_t *g_lbl_slider1_val;
-lui_obj_t *g_lbl_slider2_val;
-lui_obj_t *slider1;
-lui_obj_t *slider2;
+lui_obj_t* g_scene_one;
+lui_obj_t* g_scene_two;
+lui_obj_t* g_scene_three;
+lui_obj_t* g_lbl_cntr_value;
+lui_obj_t* g_popup_panel;
+lui_obj_t* g_popup_label;
+lui_obj_t* g_grph;
+lui_obj_t* g_btn_count;
+lui_obj_t* g_btn_reset;
+lui_obj_t* g_swtch_enable_bluetooth;
+lui_obj_t* g_swtch_enable_wifi;
+lui_obj_t* g_btn_nxt_scn;
+lui_obj_t* g_btn_prev_scn;
+lui_obj_t* g_lbl_slider1_val;
+lui_obj_t* g_lbl_slider2_val;
+lui_obj_t* slider1;
+lui_obj_t* slider2;
+
+lui_obj_t* btngrid;
 
 
 double g_points[50][2];
@@ -46,13 +49,35 @@ uint16_t g_btn_press_cnt_int = 0;
 uint32_t g_disp_buffer_counter = 0;
 uint32_t g_sidp_buffer_max_size = 100 * HOR_RES; //HOR_RES * VERT_RES;
 
+
+char* btnm_map[] = {"1#", "q", "w", "e", "r", "t", "y","u","i","o","p", "<=","\n", //buttons: 0-11
+                                    "ABC", "a", "s", "d", "f", "g", "h","j","k","l", "Enter","\n",   //buttons: 12-22
+                                  "-","_","z", "x", "c","v","b","n","m",",",".",":","\n",           //buttons: 23-34
+                                  "[X]"," <<","  ", ">> ", "OK", "\0"};  
+char* btnm_map_2[] = {"1#", "Q", "W", "E", "R", "T", "Y","U","I","O","P", "<=","\n", //buttons: 0-11
+                                    "abc", "A", "S", "D", "F", "G", "H","J","K","L", "Enter","\n",   //buttons: 12-22
+                                  "-","_","Z", "X", "C","V","B","N","M",",",".",":","\n",           //buttons: 23-34
+                                  "[X]"," <<","  ", ">> ", "OK", "\0"};
+
+uint8_t default_kb_ctrl_lc_map[] = {
+        5 | _LUI_BTNGRID_MASK_BTN_IS_CHECKABLE, 4, 4 | _LUI_BTNGRID_MASK_BTN_IS_HIDDEN, 4, 4, 4, 4, 4, 4, 4, 4, 7,
+        6, 3, 3, 3, 3, 3 | _LUI_BTNGRID_MASK_BTN_IS_DISABLED, 3, 3, 3, 3, 7,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        2, 2, 6, 2, 2
+    };
+uint8_t default_kb_ctrl_lc_map_2[] = {
+        8 | _LUI_BTNGRID_MASK_BTN_IS_CHECKABLE, 4, 4 | _LUI_BTNGRID_MASK_BTN_IS_HIDDEN, 4, 4, 4, 4, 4, 4, 4, 4, 7,
+        6, 3, 3, 3, 3, 3 | _LUI_BTNGRID_MASK_BTN_IS_DISABLED, 3, 3, 3, 3, 7,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        2, 2, 6, 2, 2
+    };
 // Callback functions for LameUI ---------------------------------------------------
-void count_and_reset_event_handler(lui_obj_t *obj);
-void popupbtn_event_handler(lui_obj_t *obj);
-void change_grph_event_handler(lui_obj_t *obj);
-void enable_wifi_and_bt_event_handler(lui_obj_t *obj);
-void slider_event_handler(lui_obj_t *obj);
-void scn_change_event_handler(lui_obj_t *obj);
+void count_and_reset_event_handler(lui_obj_t* obj);
+void popupbtn_event_handler(lui_obj_t* obj);
+void change_grph_event_handler(lui_obj_t* obj);
+void enable_wifi_and_bt_event_handler(lui_obj_t* obj);
+void slider_event_handler(lui_obj_t* obj);
+void scn_change_event_handler(lui_obj_t* obj);
 void my_input_read_opengl (lui_touch_input_data_t *input);
 void my_set_pixel_area_opengl (uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t color);
 // End LameUI callbacks ------------------------------------------------------------
@@ -110,7 +135,7 @@ void my_input_read_opengl (lui_touch_input_data_t *input)
 }
 
 // Event handler for button, called back by LameUI
-void count_and_reset_event_handler(lui_obj_t *obj)
+void count_and_reset_event_handler(lui_obj_t* obj)
 {
 	//printf("\nState Change occured. Event ID: %d", event);
 	//memset(event_name, 0, strlen(event_name));
@@ -120,22 +145,57 @@ void count_and_reset_event_handler(lui_obj_t *obj)
 		if (obj == g_btn_count)
 		{
 			sprintf(g_btn_press_cnt, "%d", ++g_btn_press_cnt_int);
-			lui_label_set_text(g_btn_press_cnt, g_lbl_cntr_value);		
+			lui_label_set_text(g_lbl_cntr_value, g_btn_press_cnt);		
 		}
 		else if (obj == g_btn_reset)
 		{
 			g_btn_press_cnt_int = 0;
 			sprintf(g_btn_press_cnt, "%d", g_btn_press_cnt_int);
-			lui_label_set_text(g_btn_press_cnt, g_lbl_cntr_value);
+			lui_label_set_text(g_lbl_cntr_value, g_btn_press_cnt);
 		}
 
 		prepare_chart_data_2(g_btn_press_cnt_int + 5);
-		lui_linechart_set_data_source((double *)&g_points, 50, g_grph);
+		lui_linechart_set_data_source(g_grph, (double* )&g_points, 50);
+	}
+}
+
+void test(lui_obj_t* obj)
+{
+	uint8_t event = lui_object_get_event(obj);
+	uint8_t btn_index = lui_btngrid_get_acive_btn_index(obj);
+	if (event ==  LUI_EVENT_PRESSED)
+	{
+		fprintf(stderr, "pressed: %d\n", btn_index);
+	}
+	else if (event ==  LUI_EVENT_RELEASED)
+	{
+		fprintf(stderr, "released: %d\n", btn_index);
+	}
+	else if (event ==  LUI_EVENT_CHECK_CHANGED)
+	{
+		uint8_t chk_stat = lui_btngrid_get_btn_check_status(obj, btn_index);
+		fprintf(stderr, "chk changed: %d\t status:%d\n", btn_index, chk_stat);
+		
+		if (chk_stat)
+		{
+			//lui_object_set_area(btngrid, HOR_RES, 150);
+			//lui_btngrid_set_textmap(btngrid, btnm_map);
+			lui_btngrid_set_propertymap(btngrid, default_kb_ctrl_lc_map);
+		}
+		else
+		{
+			//lui_object_set_area(btngrid, HOR_RES, 300);
+			//lui_btngrid_set_textmap(btngrid, btnm_map_2);
+			lui_btngrid_set_propertymap(btngrid, default_kb_ctrl_lc_map_2);
+			lui_btngrid_set_btn_text(btngrid, 4, "walla");
+		}
+		// lui_btngrid_set_propertymap(btngrid, default_kb_ctrl_lc_map);
+		lui_btngrid_set_btn_checked(btngrid, 0, chk_stat);
 	}
 }
 
 // Event handler for popup buttons
-void popupbtn_event_handler(lui_obj_t *obj)
+void popupbtn_event_handler(lui_obj_t* obj)
 {
 	//printf("\nState Change occured. Event ID: %d", event);
 	//memset(event_name, 0, strlen(event_name));
@@ -152,7 +212,7 @@ void popupbtn_event_handler(lui_obj_t *obj)
 
 
 // Event handler for switch change graph. Called back by LameUI
-void enable_wifi_and_bt_event_handler(lui_obj_t *obj)
+void enable_wifi_and_bt_event_handler(lui_obj_t* obj)
 {	
 	// change background color
 	uint8_t event = lui_object_get_event(obj);
@@ -163,26 +223,26 @@ void enable_wifi_and_bt_event_handler(lui_obj_t *obj)
 		{
 			if (val == 1)
 			{
-				lui_label_set_text("Alert:\nWiFi is enabled", g_popup_label);
-				lui_scene_set_popup(g_popup_panel, g_scene_one);
+				lui_label_set_text(g_popup_label, "Alert:\nWiFi is enabled");
+				lui_scene_set_popup(g_scene_one, g_popup_panel);
 			}
 			else
 			{
-				lui_label_set_text("Alert:\nWiFi is disabled", g_popup_label);
-				lui_scene_set_popup(g_popup_panel, g_scene_one);
+				lui_label_set_text(g_popup_label, "Alert:\nWiFi is disabled");
+				lui_scene_set_popup(g_scene_one, g_popup_panel);
 			}
 		}
 		else if (obj == g_swtch_enable_bluetooth)
 		{
 			if (val == 1)
 			{
-				lui_label_set_text("Alert:\nBluetooth is enabled", g_popup_label);
-				lui_scene_set_popup(g_popup_panel, g_scene_one);
+				lui_label_set_text(g_popup_label, "Alert:\nBluetooth is enabled");
+				lui_scene_set_popup(g_scene_one, g_popup_panel);
 			}
 			else
 			{
-				lui_label_set_text("Alert:\nBluetooth is disabled", g_popup_label);
-				lui_scene_set_popup(g_popup_panel, g_scene_one);
+				lui_label_set_text(g_popup_label, "Alert:\nBluetooth is disabled");
+				lui_scene_set_popup(g_scene_one, g_popup_panel);
 			}
 		}
 	}
@@ -190,7 +250,7 @@ void enable_wifi_and_bt_event_handler(lui_obj_t *obj)
 }
 
 // Event handler for slider. Changes a label's text based on slider value
-void slider_event_handler(lui_obj_t *obj)
+void slider_event_handler(lui_obj_t* obj)
 {
 	if (lui_object_get_event(obj) == LUI_EVENT_VALUE_CHANGED)
 	{
@@ -199,20 +259,20 @@ void slider_event_handler(lui_obj_t *obj)
 		{
 			static char buf_slider1[5]; /* max 3 bytes for number plus 1 sign plus 1 null terminating byte */
 			snprintf(buf_slider1, 5, "%d", val);
-			lui_label_set_text(buf_slider1, g_lbl_slider1_val);
+			lui_label_set_text(g_lbl_slider1_val, buf_slider1);
 		}
 		else if (obj == slider2)
 		{
 			static char buf_slider2[5]; /* max 3 bytes for number plus 1 sign plus 1 null terminating byte */
 			snprintf(buf_slider2, 5, "%d", val);
-			lui_label_set_text(buf_slider2, g_lbl_slider2_val);
+			lui_label_set_text(g_lbl_slider2_val, buf_slider2);
 		}
 		
 	}
 }
 
 // Event handler for next_scene button and prev_scene button press
-void scn_change_event_handler(lui_obj_t *obj)
+void scn_change_event_handler(lui_obj_t* obj)
 {
 	uint8_t event = lui_object_get_event(obj);
 	
@@ -325,41 +385,46 @@ int main (int argc, char** argv)
 	//creating display driver variable for lame_ui
 	lui_dispdrv_t *my_display_driver = lui_dispdrv_create();
 	lui_dispdrv_register(my_display_driver);
-	lui_dispdrv_set_resolution(HOR_RES, VERT_RES, my_display_driver);
-	lui_dispdrv_set_draw_pixels_area_cb(my_set_pixel_area_opengl, my_display_driver);
-	lui_dispdrv_set_render_complete_cb(my_render_complete_handler, my_display_driver);
+	lui_dispdrv_set_resolution(my_display_driver, HOR_RES, VERT_RES);
+	lui_dispdrv_set_draw_pixels_area_cb(my_display_driver, my_set_pixel_area_opengl);
+	lui_dispdrv_set_render_complete_cb(my_display_driver, my_render_complete_handler);
 	//my_display_driver = lui_dispdrv_destroy(my_display_driver);
 
 	lui_touch_input_dev_t *my_input_device = lui_touch_inputdev_create();
 	lui_touch_inputdev_register(my_input_device);
-	lui_touch_inputdev_set_read_input_cb(my_input_read_opengl, my_input_device);	
+	lui_touch_inputdev_set_read_input_cb(my_input_device, my_input_read_opengl);	
 
 	//----------------------------------------------------------
 	//create and add scenes
 	g_scene_one = lui_scene_create();
 	//lui_object_set_bg_color(0, g_scene_one);
-	lui_scene_set_font(&font_microsoft_16, g_scene_one);
+	lui_scene_set_font(g_scene_one, &font_microsoft_16);
 	//g_scene_one = lui_scene_destroy(g_scene_one);	// For destroying, assigning the return value is mandatory
 
 	//create and add scenes
 	g_scene_two = lui_scene_create();
 	//lui_object_set_bg_color(0, g_scene_two);
-	lui_scene_set_font(&font_microsoft_16, g_scene_two);
+	lui_scene_set_font(g_scene_two, &font_microsoft_16);
+
+
+	g_scene_three = lui_scene_create();
+	//lui_object_set_bg_color(0, g_scene_two);
+	lui_scene_set_font(g_scene_two, &font_microsoft_16);
 
 	//set the active scene. This scene will be rendered iby the lui_update()
-	lui_scene_set_active(g_scene_one);
+	lui_scene_set_active(g_scene_three);
 
 	//----------------------------------------------------------
 	//create label
 
-	lui_obj_t *lbl_heading = lui_label_create();
+	lui_obj_t* lbl_heading = lui_label_create();
 	lui_object_add_to_parent(lbl_heading, g_scene_one);
-	lui_label_set_text("This is a demo of LameUI :)", lbl_heading);
-	lui_object_set_position(0, 1, lbl_heading);
-	lui_object_set_area(HOR_RES, 20, lbl_heading);
-	lui_object_set_bg_color(LUI_STYLE_BUTTON_BG_COLOR, lbl_heading);
-	lui_label_set_text_color(lui_rgb(238, 238, 238), lbl_heading);
-	lui_object_set_border_visibility(1, lbl_heading);
+	lui_label_set_text(lbl_heading, "This is a demo of LameUIsefesrf\t\t\nawedaed aedaedawd :)");
+	lui_object_set_position(lbl_heading, 0, 1);
+	//lui_object_set_area(lbl_heading, HOR_RES, 20);
+	lui_object_set_bg_color(lbl_heading, LUI_STYLE_BUTTON_BG_COLOR);
+	lui_label_set_text_color(lbl_heading, lui_rgb(238, 238, 238));
+	lui_object_set_border_visibility(lbl_heading, 1);
 
 	
 	//----------------------------------------------------------
@@ -370,143 +435,142 @@ int main (int argc, char** argv)
 	//create a line chart with above data
 	g_grph = lui_linechart_create();
 	lui_object_add_to_parent(g_grph, g_scene_one);
-	lui_linechart_set_data_source((double *)&g_points, 50, g_grph);
-	//lui_linechart_set_data_range(-4, 4, g_grph);
-	lui_object_set_position(20, 50, g_grph);
-	lui_object_set_area(440, 200, g_grph);
+	lui_linechart_set_data_source(g_grph, (double* )&g_points, 50);
+	//lui_linechart_set_data_range(g_grph, -4, 4);
+	lui_object_set_position(g_grph, 20, 50);
+	lui_object_set_area(g_grph, 440, 200);
 
 
 	//----------------------------------------------------------
 
-	lui_obj_t *lbl_cntr_txt = lui_label_create();
+	lui_obj_t* lbl_cntr_txt = lui_label_create();
 	lui_object_add_to_parent(lbl_cntr_txt, g_scene_one);
-	lui_label_set_text("Counter:", lbl_cntr_txt);
-	lui_object_set_position(10, 285, lbl_cntr_txt);
-	lui_object_set_area(70, 20, lbl_cntr_txt);
+	lui_label_set_text(lbl_cntr_txt, "Counter:");
+	lui_object_set_position(lbl_cntr_txt, 10, 285);
+	lui_object_set_area(lbl_cntr_txt, 70, 20);
 
 
 	g_lbl_cntr_value = lui_label_create();
 	lui_object_add_to_parent(g_lbl_cntr_value, g_scene_one);
-	lui_label_set_font(&font_ubuntu_48, g_lbl_cntr_value);
-	lui_label_set_text("0", g_lbl_cntr_value);
-	lui_object_set_x_pos(85, g_lbl_cntr_value);
-	lui_object_set_y_pos(270, g_lbl_cntr_value);
-	lui_object_set_area(110, 54, g_lbl_cntr_value);
-	lui_object_set_border_visibility(1, g_lbl_cntr_value);
+	lui_label_set_font(g_lbl_cntr_value, &font_ubuntu_48);
+	lui_label_set_text(g_lbl_cntr_value, "0");
+	lui_object_set_x_pos(g_lbl_cntr_value, 85);
+	lui_object_set_y_pos(g_lbl_cntr_value, 270);
+	lui_object_set_area(g_lbl_cntr_value, 110, 54);
+	lui_object_set_border_visibility(g_lbl_cntr_value, 1);
 
 
 	//create two buttons. One for count up, another for reset
 	g_btn_count = lui_button_create();
 	lui_object_add_to_parent(g_btn_count, g_scene_one);
-	lui_object_set_position(230, 280, g_btn_count);
-	lui_object_set_area(100, 40, g_btn_count);
-	lui_button_set_label_text("Count", g_btn_count);
-	lui_object_set_callback(count_and_reset_event_handler, g_btn_count);
+	lui_object_set_position(g_btn_count, 230, 280);
+	lui_object_set_area(g_btn_count, 100, 40);
+	lui_button_set_label_text(g_btn_count, "Count");
+	lui_object_set_callback(g_btn_count, count_and_reset_event_handler);
 
 	g_btn_reset = lui_button_create();
 	lui_object_add_to_parent(g_btn_reset, g_scene_one);
-	lui_object_set_position(350, 280, g_btn_reset);
-	lui_object_set_area(100, 40, g_btn_reset);
-	lui_button_set_label_text("Reset", g_btn_reset);
-	lui_object_set_callback(count_and_reset_event_handler, g_btn_reset);
+	lui_object_set_position(g_btn_reset, 350, 280);
+	lui_object_set_area(g_btn_reset, 100, 40);
+	lui_button_set_label_text(g_btn_reset, "Reset");
+	lui_object_set_callback(g_btn_reset, count_and_reset_event_handler);
 
 
 	// group all the switches and their labels
-	lui_obj_t *panel_group_switches =  lui_panel_create();
-	lui_object_set_position(5, 340, panel_group_switches);
-	lui_object_set_area(240, 120, panel_group_switches);
+	lui_obj_t* panel_group_switches =  lui_panel_create();
+	lui_object_set_position(panel_group_switches, 5, 340);
+	lui_object_set_area(panel_group_switches, 240, 120);
 	lui_object_add_to_parent(panel_group_switches, g_scene_one);
 
-	lui_obj_t *lbl_enable_wifi = lui_label_create();
+	lui_obj_t* lbl_enable_wifi = lui_label_create();
 	lui_object_add_to_parent(lbl_enable_wifi, panel_group_switches);
-	lui_label_set_text("Enable WiFi", lbl_enable_wifi);
-	lui_object_set_position(5, 5, lbl_enable_wifi);
-	lui_object_set_area(140, 20, lbl_enable_wifi);
+	lui_label_set_text(lbl_enable_wifi, "Enable WiFi");
+	lui_object_set_position(lbl_enable_wifi, 5, 5);
+	lui_object_set_area(lbl_enable_wifi, 140, 20);
 
 	g_swtch_enable_wifi = lui_switch_create();
 	lui_object_add_to_parent(g_swtch_enable_wifi, panel_group_switches);
-	lui_object_set_position(190, 5, g_swtch_enable_wifi);
-	lui_object_set_callback(enable_wifi_and_bt_event_handler, g_swtch_enable_wifi);
+	lui_object_set_position(g_swtch_enable_wifi, 190, 5);
+	lui_object_set_callback(g_swtch_enable_wifi, enable_wifi_and_bt_event_handler);
 
-	lui_obj_t *lbl_enable_bluetooth = lui_label_create();
+	lui_obj_t* lbl_enable_bluetooth = lui_label_create();
 	lui_object_add_to_parent(lbl_enable_bluetooth, panel_group_switches);
-	lui_label_set_text("Enable Bluetooth", lbl_enable_bluetooth);
-	lui_object_set_position(5, 35, lbl_enable_bluetooth);
-	lui_object_set_area(140, 20, lbl_enable_bluetooth);
+	lui_label_set_text(lbl_enable_bluetooth, "Enable Bluetooth");
+	lui_object_set_position(lbl_enable_bluetooth, 5, 35);
+	lui_object_set_area(lbl_enable_bluetooth, 140, 20);
 
 	g_swtch_enable_bluetooth = lui_switch_create();
 	lui_object_add_to_parent(g_swtch_enable_bluetooth, panel_group_switches);
-	lui_object_set_position(190, 35, g_swtch_enable_bluetooth);
-	lui_object_set_callback(enable_wifi_and_bt_event_handler, g_swtch_enable_bluetooth);
+	lui_object_set_position(g_swtch_enable_bluetooth, 190, 35);
+	lui_object_set_callback(g_swtch_enable_bluetooth, enable_wifi_and_bt_event_handler);
 
-
-	lui_obj_t *lbl_priv_chat = lui_label_create();
+	lui_obj_t* lbl_priv_chat = lui_label_create();
 	lui_object_add_to_parent(lbl_priv_chat, panel_group_switches);
-	lui_label_set_text("Private chat", lbl_priv_chat);
-	lui_object_set_position(5, 65, lbl_priv_chat);
-	lui_object_set_area(140, 20, lbl_priv_chat);
+	lui_label_set_text(lbl_priv_chat, "Private chat");
+	lui_object_set_position(lbl_priv_chat, 5, 65);
+	lui_object_set_area(lbl_priv_chat, 140, 20);
 
-	lui_obj_t *swtch_priv_chat = lui_switch_create();
+	lui_obj_t* swtch_priv_chat = lui_switch_create();
 	lui_object_add_to_parent(swtch_priv_chat, panel_group_switches);
-	lui_object_set_position(190, 65, swtch_priv_chat);
+	lui_object_set_position(swtch_priv_chat, 190, 65);
 
-	lui_obj_t *lbl_notification = lui_label_create();
+	lui_obj_t* lbl_notification = lui_label_create();
 	lui_object_add_to_parent(lbl_notification, panel_group_switches);
-	lui_label_set_text("Notifications", lbl_notification);
-	lui_object_set_position(5, 95, lbl_notification);
-	lui_object_set_area(140, 20, lbl_notification);
+	lui_label_set_text(lbl_notification, "Notifications");
+	lui_object_set_position(lbl_notification, 5, 95);
+	lui_object_set_area(lbl_notification, 140, 20);
 
-	lui_obj_t *swtch_notification = lui_switch_create();
+	lui_obj_t* swtch_notification = lui_switch_create();
 	lui_object_add_to_parent(swtch_notification, panel_group_switches);
-	lui_object_set_position(190, 95, swtch_notification);
+	lui_object_set_position(swtch_notification, 190, 95);
 
 
 	// add a long text label
-	lui_obj_t *lbl_long_text = lui_label_create();
+	lui_obj_t* lbl_long_text = lui_label_create();
 	lui_object_add_to_parent(lbl_long_text, g_scene_one);
-	lui_label_set_text("The quick brown fox jumps over the lazy dog The quick brown fox jumps over the lazy dog The quick brown fox jumps over the lazy dog ate my head ", lbl_long_text);
-	lui_object_set_position(5, 470, lbl_long_text);
-	lui_object_set_area(240, 120, lbl_long_text);
-	lui_object_set_border_visibility(1, lbl_long_text);
+	lui_label_set_text(lbl_long_text, "The quick brown fox jumps over the lazy dog The quick brown fox jumps over the lazy dog The quick brown fox jumps over the lazy dog ate my head ");
+	lui_object_set_position(lbl_long_text, 5, 470);
+	lui_object_set_area(lbl_long_text, 240, 120);
+	lui_object_set_border_visibility(lbl_long_text, 1);
 
 	// -------------------------------------------
 	// create popup group
 	g_popup_panel = lui_panel_create();
 	g_popup_label = lui_label_create();
-	lui_obj_t *popup_btn = lui_button_create();
+	lui_obj_t* popup_btn = lui_button_create();
 	lui_object_add_to_parent(g_popup_label, g_popup_panel);
 	lui_object_add_to_parent(popup_btn, g_popup_panel);
-	lui_label_set_text("This is a popup", g_popup_label);
+	lui_label_set_text(g_popup_label, "This is a popup");
 	
-	lui_object_set_position(110, 80, popup_btn);
-	lui_object_set_position(5, 12, g_popup_label);
-	lui_object_set_position(80, 240, g_popup_panel);
+	lui_object_set_position(popup_btn, 110, 80);
+	lui_object_set_position(g_popup_label, 5, 12);
+	lui_object_set_position(g_popup_panel, 80, 240);
 
-	lui_object_set_area(158, 18, g_popup_label);
-	lui_object_set_area(80, 28, popup_btn);
-	lui_object_set_area(300, 140, g_popup_panel);
+	lui_object_set_area(g_popup_label, 158, 18);
+	lui_object_set_area(popup_btn, 80, 28);
+	lui_object_set_area(g_popup_panel, 300, 140);
 
-	lui_scene_set_popup_locked(0, g_scene_one);
+	lui_scene_set_popup_locked(g_scene_one, 0);
 	
-	lui_button_set_label_text("OK", popup_btn);
-	lui_button_set_label_font(&font_microsoft_16, popup_btn);
-	//lui_button_set_label_color(ILI_COLOR_WHITE, popup_btn);
-	//lui_button_set_extra_colors(lui_rgb(112, 0, 77), lui_rgb(171, 0, 117), popup_btn);
-	lui_object_set_callback(popupbtn_event_handler, popup_btn);
+	lui_button_set_label_text(popup_btn, "OK");
+	lui_button_set_label_font(popup_btn, &font_microsoft_16);
+	//lui_button_set_label_color(popup_btn, ILI_COLOR_WHITE);
+	//lui_button_set_extra_colors(popup_btn, lui_rgb(112, 0, 77), lui_rgb(171, 0, 117));
+	lui_object_set_callback(popup_btn, popupbtn_event_handler);
 
 
 	// add a small list in scene 
-	lui_obj_t *list1 = lui_list_create();
-	lui_object_set_position(250, 340, list1);
-	lui_object_set_area(215, 250, list1);
-	lui_object_set_border_visibility(1, list1);
-	lui_obj_t *item1 = lui_list_add_item("Shut Down", list1);
-	lui_obj_t *item2 = lui_list_add_item("Restart", list1);
-	lui_obj_t *item3 = lui_list_add_item("Suspend", list1);
-	lui_obj_t *item4 = lui_list_add_item("Log Out", list1);
-	lui_obj_t *item5 = lui_list_add_item("Switch User", list1);
-	lui_obj_t *item6 = lui_list_add_item("Hibernate", list1);
-	lui_obj_t *item7 = lui_list_add_item("Lock screen", list1);
+	lui_obj_t* list1 = lui_list_create();
+	lui_object_set_position(list1, 250, 340);
+	lui_object_set_area(list1, 215, 250);
+	lui_object_set_border_visibility(list1, 1);
+	lui_obj_t* item1 = lui_list_add_item(list1, "Shut Down");
+	lui_obj_t* item2 = lui_list_add_item(list1, "Restart");
+	lui_obj_t* item3 = lui_list_add_item(list1, "Suspend");
+	lui_obj_t* item4 = lui_list_add_item(list1, "Log Out");
+	lui_obj_t* item5 = lui_list_add_item(list1, "Switch User");
+	lui_obj_t* item6 = lui_list_add_item(list1, "Hibernate");
+	lui_obj_t* item7 = lui_list_add_item(list1, "Lock screen");
 	lui_list_prepare(list1);
 	lui_object_add_to_parent(list1, g_scene_one);
 	
@@ -514,128 +578,158 @@ int main (int argc, char** argv)
 	// add a button to go to next scene (g_scene_two)
 	g_btn_nxt_scn = lui_button_create();
 	lui_object_add_to_parent(g_btn_nxt_scn, g_scene_one);
-	lui_object_set_position(140, 595, g_btn_nxt_scn);
-	lui_object_set_area(200, 40, g_btn_nxt_scn);
-	lui_button_set_label_text("Next Scene ->", g_btn_nxt_scn);
-	lui_object_set_callback(scn_change_event_handler, g_btn_nxt_scn);
+	lui_object_set_position(g_btn_nxt_scn, 140, 595);
+	lui_object_set_area(g_btn_nxt_scn, 200, 40);
+	lui_button_set_label_text(g_btn_nxt_scn, "Next Scene ->");
+	lui_object_set_callback(g_btn_nxt_scn, scn_change_event_handler);
 
 	// add a button to go to prev scene (g_scene_one)
 	g_btn_prev_scn = lui_button_create();
 	lui_object_add_to_parent(g_btn_prev_scn, g_scene_two);
-	lui_object_set_position(140, 595, g_btn_prev_scn);
-	lui_object_set_area(200, 40, g_btn_prev_scn);
-	lui_button_set_label_text("<- Prev Scene", g_btn_prev_scn);
-	lui_object_set_callback(scn_change_event_handler, g_btn_prev_scn);
+	lui_object_set_position(g_btn_prev_scn, 140, 595);
+	lui_object_set_area(g_btn_prev_scn, 200, 40);
+	lui_button_set_label_text(g_btn_prev_scn, "<- Prev Scene");
+	lui_object_set_callback(g_btn_prev_scn, scn_change_event_handler);
 
 	// a text label for g_scene_two
-	lui_obj_t *lbl_list_descr = lui_label_create();
+	lui_obj_t* lbl_list_descr = lui_label_create();
 	lui_object_add_to_parent(lbl_list_descr, g_scene_two);
-	lui_label_set_text("This is a long list. For long lists that require multiple pages, navigation buttons are automatically added..", lbl_list_descr);
-	lui_object_set_position(90, 10, lbl_list_descr);
-	lui_object_set_area(300, 70, lbl_list_descr);
+	lui_label_set_text(lbl_list_descr, "This is a long list. For long lists that require multiple pages, navigation buttons are automatically added..");
+	lui_object_set_position(lbl_list_descr, 90, 10);
+	lui_object_set_area(lbl_list_descr, 300, 70);
 
 	// add a big list in scene two
-	lui_obj_t *list2 = lui_list_create();
-	lui_object_set_position(90, 90, list2);
-	lui_object_set_area(300, 280, list2);
-	lui_object_set_border_visibility(1, list2);
-	lui_obj_t *item_list2_1 = lui_list_add_item("Hello", list2);
-	lui_obj_t *item_list2_2 = lui_list_add_item("Hi there", list2);
-	lui_obj_t *item_list2_3 = lui_list_add_item("I am good", list2);
-	lui_obj_t *item_list2_4 = lui_list_add_item("This is", list2);
-	lui_obj_t *item_list2_5 = lui_list_add_item("a test", list2);
-	lui_obj_t *item_list2_6 = lui_list_add_item("and it's", list2);
-	lui_obj_t *item_list2_7 = lui_list_add_item("working!!", list2);
-	lui_obj_t *item_list2_8 = lui_list_add_item("I'm happy", list2);
-	lui_obj_t *item_list2_9 = lui_list_add_item("yaaaawn", list2);
-	lui_obj_t *item_list2_10 = lui_list_add_item("Gonna sleep", list2);
-	lui_obj_t *item_list2_11 = lui_list_add_item("Worked hard", list2);
-	lui_obj_t *item_list2_12 = lui_list_add_item("Now bye", list2);
-	lui_obj_t *item_list2_13 = lui_list_add_item("Hey you..!!", list2);
-	lui_obj_t *item_list2_14 = lui_list_add_item("Adding more items", list2);
-	lui_obj_t *item_list2_15 = lui_list_add_item("Ha hahahah", list2);
-	lui_obj_t *item_list2_16 = lui_list_add_item("It's simple", list2);
-	lui_obj_t *item_list2_17 = lui_list_add_item("and stupid", list2);
-	lui_obj_t *item_list2_18 = lui_list_add_item("but it works!", list2);
-	lui_obj_t *item_list2_19 = lui_list_add_item("bla bla bla", list2);
-	lui_obj_t *item_list2_20 = lui_list_add_item("More bla bla bla", list2);
-	lui_obj_t *item_list2_21 = lui_list_add_item("Enddddddddddd", list2);
+	lui_obj_t* list2 = lui_list_create();
+	lui_object_set_position(list2, 90, 90);
+	lui_object_set_area(list2, 300, 280);
+	lui_object_set_border_visibility(list2, 1);
+	lui_obj_t* item_list2_1 = lui_list_add_item(list2, "Hello");
+	lui_obj_t* item_list2_2 = lui_list_add_item(list2, "Hi there");
+	lui_obj_t* item_list2_3 = lui_list_add_item(list2, "I am good");
+	lui_obj_t* item_list2_4 = lui_list_add_item(list2, "This is");
+	lui_obj_t* item_list2_5 = lui_list_add_item(list2, "a test");
+	lui_obj_t* item_list2_6 = lui_list_add_item(list2, "and it's");
+	lui_obj_t* item_list2_7 = lui_list_add_item(list2, "working!!");
+	lui_obj_t* item_list2_8 = lui_list_add_item(list2, "I'm happy");
+	lui_obj_t* item_list2_9 = lui_list_add_item(list2, "yaaaawn");
+	lui_obj_t* item_list2_10 = lui_list_add_item(list2, "Gonna sleep");
+	lui_obj_t* item_list2_11 = lui_list_add_item(list2, "Worked hard");
+	lui_obj_t* item_list2_12 = lui_list_add_item(list2, "Now bye");
+	lui_obj_t* item_list2_13 = lui_list_add_item(list2, "Hey you..!!");
+	lui_obj_t* item_list2_14 = lui_list_add_item(list2, "Adding more items");
+	lui_obj_t* item_list2_15 = lui_list_add_item(list2, "Ha hahahah");
+	lui_obj_t* item_list2_16 = lui_list_add_item(list2, "It's simple");
+	lui_obj_t* item_list2_17 = lui_list_add_item(list2, "and stupid");
+	lui_obj_t* item_list2_18 = lui_list_add_item(list2, "but it works!");
+	lui_obj_t* item_list2_19 = lui_list_add_item(list2, "bla bla bla");
+	lui_obj_t* item_list2_20 = lui_list_add_item(list2, "More bla bla bla");
+	lui_obj_t* item_list2_21 = lui_list_add_item(list2, "Enddddddddddd");
 	lui_list_prepare(list2);
 	lui_object_add_to_parent(list2, g_scene_two);
 
 	// add a slider
 	slider1 = lui_slider_create();
 	lui_object_add_to_parent(slider1, g_scene_two);
-	lui_object_set_position(90, 390, slider1);
-	lui_object_set_area(270, 20, slider1);
-	lui_slider_set_range(-100, 100, slider1);
-	lui_slider_set_value(50, slider1);
-	lui_object_set_border_visibility(1, slider1);
-	lui_object_set_callback(slider_event_handler, slider1);
+	lui_object_set_position(slider1, 90, 390);
+	lui_object_set_area(slider1, 270, 20);
+	lui_slider_set_range(slider1, -100, 100);
+	lui_slider_set_value(slider1, 50);
+	lui_object_set_border_visibility(slider1, 1);
+	lui_object_set_callback(slider1, slider_event_handler);
 
 	// a label to show its value
 	g_lbl_slider1_val = lui_label_create();
 	lui_object_add_to_parent(g_lbl_slider1_val, g_scene_two);
-	lui_label_set_text("50", g_lbl_slider1_val);
-	lui_object_set_position(370, 390, g_lbl_slider1_val);
-	lui_object_set_area(100, 20, g_lbl_slider1_val);
+	lui_label_set_text(g_lbl_slider1_val, "50");
+	lui_object_set_position(g_lbl_slider1_val, 370, 390);
+	lui_object_set_area(g_lbl_slider1_val, 100, 20);
 
 	// add second slider
 	slider2 = lui_slider_create();
 	lui_object_add_to_parent(slider2, g_scene_two);
-	lui_object_set_position(90, 420, slider2);
-	lui_object_set_area(270, 20, slider2);
-	lui_slider_set_range(-100, 100, slider2);
-	lui_slider_set_value(-50, slider2);
-	lui_object_set_callback(slider_event_handler, slider2);
+	lui_object_set_position(slider2, 90, 420);
+	lui_object_set_area(slider2, 270, 20);
+	lui_slider_set_range(slider2, -100, 100);
+	lui_slider_set_value(slider2, -50);
+	lui_object_set_callback(slider2, slider_event_handler);
 
 	// another label to show second slider's value
 	g_lbl_slider2_val = lui_label_create();
 	lui_object_add_to_parent(g_lbl_slider2_val, g_scene_two);
-	lui_label_set_text("-50", g_lbl_slider2_val);
-	lui_object_set_position(370, 420, g_lbl_slider2_val);
-	lui_object_set_area(100, 20, g_lbl_slider2_val);
+	lui_label_set_text(g_lbl_slider2_val, "-50");
+	lui_object_set_position(g_lbl_slider2_val, 370, 420);
+	lui_object_set_area(g_lbl_slider2_val, 100, 20);
 
 
 	// add a label as heading for checkboxes
-	lui_obj_t *lbl_sport_question = lui_label_create();
+	lui_obj_t* lbl_sport_question = lui_label_create();
 	lui_object_add_to_parent(lbl_sport_question, g_scene_two);
-	lui_label_set_text("What sports do you like?", lbl_sport_question);
-	lui_object_set_position(90, 470, lbl_sport_question);
-	lui_object_set_area(300, 20, lbl_sport_question);
+	lui_label_set_text(lbl_sport_question, "What sports do you like?");
+	lui_object_set_position(lbl_sport_question, 90, 470);
+	lui_object_set_area(lbl_sport_question, 300, 20);
 
-	lui_obj_t *chkbox_football = lui_checkbox_create();
-	lui_object_set_position(90, 495, chkbox_football);
+	lui_obj_t* chkbox_football = lui_checkbox_create();
+	lui_object_set_position(chkbox_football, 90, 495);
 	lui_object_add_to_parent(chkbox_football, g_scene_two);
 
-	lui_obj_t *lbl_football = lui_label_create();
+	lui_obj_t* lbl_football = lui_label_create();
 	lui_object_add_to_parent(lbl_football, g_scene_two);
-	lui_label_set_text("Football", lbl_football);
-	lui_object_set_position(130, 495, lbl_football);
-	lui_object_set_area(300, 20, lbl_football);
+	lui_label_set_text(lbl_football, "Football");
+	lui_object_set_position(lbl_football, 130, 495);
+	lui_object_set_area(lbl_football, 300, 20);
 
-	lui_obj_t *chkbox_cricket = lui_checkbox_create();
-	lui_object_set_position(90, 520, chkbox_cricket);
+	lui_obj_t* chkbox_cricket = lui_checkbox_create();
+	lui_object_set_position(chkbox_cricket, 90, 520);
 	lui_object_add_to_parent(chkbox_cricket, g_scene_two);
 
-	lui_obj_t *lbl_cricket = lui_label_create();
+	lui_obj_t* lbl_cricket = lui_label_create();
 	lui_object_add_to_parent(lbl_cricket, g_scene_two);
-	lui_label_set_text("Cricket", lbl_cricket);
-	lui_object_set_position(130, 520, lbl_cricket);
-	lui_object_set_area(300, 20, lbl_cricket);
+	lui_label_set_text(lbl_cricket, "Cricket");
+	lui_object_set_position(lbl_cricket, 130, 520);
+	lui_object_set_area(lbl_cricket, 300, 20);
 
-	lui_obj_t *chkbox_hockey = lui_checkbox_create();
-	lui_object_set_position(90, 545, chkbox_hockey);
+	lui_obj_t* chkbox_hockey = lui_checkbox_create();
+	lui_object_set_position(chkbox_hockey, 90, 545);
 	lui_object_add_to_parent(chkbox_hockey, g_scene_two);
 
-	lui_obj_t *lbl_hockey = lui_label_create();
+	lui_obj_t* lbl_hockey = lui_label_create();
 	lui_object_add_to_parent(lbl_hockey, g_scene_two);
-	lui_label_set_text("Hockey", lbl_hockey);
-	lui_object_set_position(130, 545, lbl_hockey);
-	lui_object_set_area(300, 20, lbl_hockey);
+	lui_label_set_text(lbl_hockey, "Hockey");
+	lui_object_set_position(lbl_hockey, 130, 545);
+	lui_object_set_area(lbl_hockey, 300, 20);
 
 
+	/* Add a btngrid in scene three */
+	btngrid = lui_btngrid_create();
+	lui_object_add_to_parent(btngrid, g_scene_three);
 	
+	
+	
+	lui_object_set_area(btngrid, HOR_RES, 300);
+	lui_btngrid_set_textmap(btngrid, btnm_map);
+	lui_btngrid_set_propertymap(btngrid, default_kb_ctrl_lc_map);
+	lui_btngrid_set_btn_checkable(btngrid, 0, 1);
+	lui_btngrid_set_btn_checked(btngrid, 0, 1);
+	lui_btngrid_set_btn_hidden(btngrid, 1, 1);
+	lui_object_set_callback(btngrid, test);
+	lui_object_set_visibility(btngrid, 1);
+	
+	((lui_btngrid_t *)(btngrid->obj_main_data))->font = &font_microsoft_16;
+
+	lui_obj_t* txtbox = lui_textbox_create();
+	lui_object_set_border_visibility(txtbox, 1);
+	char txt_buffer[50];
+	lui_textbox_set_text_buffer(txtbox, txt_buffer, 40);
+	lui_textbox_set_caret_index(txtbox, 0);
+	lui_textbox_insert_char(txtbox, 'a');
+	lui_textbox_set_caret_index(txtbox, 1);
+	lui_textbox_insert_string(txtbox, "helLo world boiiiiiiiii dfkjfdf", 40);
+	lui_textbox_set_caret_index(txtbox, 3);
+	lui_textbox_set_font(txtbox, &font_ubuntu_48);
+	lui_object_add_to_parent(txtbox, g_scene_three);
+	lui_object_set_area(txtbox, 200, 60);
+	
+
 	/*-----------------------------------------------------------------------------------
 	 -		Glut related functions for drawing and input handling						-
 	 -----------------------------------------------------------------------------------*/
@@ -655,6 +749,8 @@ void myDisplay()
 {
 	// the main update function to process input and display output
 	lui_update();
+
+	
 	// Flush drawing commands
 	glFlush();
 }
@@ -664,8 +760,10 @@ void myDisplay()
 void myMouseMove(int x, int y)
 {
 	//printf ("[DEBUG] void myMouse( int x: %d, int y: %d )\n", x, y);			//send all output to screen
-	g_input.x = x;
-	g_input.y = y;
+
+	/* Commented out to simulate touch input */
+	//g_input.x = x;
+	//g_input.y = y;
 }
 
 // This function is called back by glut when mouse is moved while being pressed
@@ -677,17 +775,25 @@ void myMousePressMove(int x, int y)
 }
 
 // This function is called back by glut when mouse is pressed
+// This is to simulates touch input
 void myMousePress(int button, int state, int x, int y)
 {
-	g_input.x = x;
-	g_input.y = y;
-
+	
 	if (button == GLUT_LEFT)
 	{
 		if (state == GLUT_DOWN)
+		{
 			g_input.is_pressed = 1;
+			g_input.x = x;
+			g_input.y = y;
+		}
+			
 		else
+		{
 			g_input.is_pressed = 0;
+			g_input.x = -1;
+			g_input.y = -1;
+		}
 	}
 }
 
