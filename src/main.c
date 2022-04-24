@@ -7,16 +7,14 @@
 #include <GL/glut.h>
 #include <math.h>
 #include <inttypes.h>
-#include "lame_ui.h"
-#include "font_fixedsys_mono_16.h"
-#include "font_microsoft_16.h"
-#include "font_ubuntu_48.h"
-#include "font_ubuntu_16.h"
+#include "../LameUI/lame_ui.h"
 #include <unistd.h>
+#include "fonts/montserrat_regular_32.h"
+#include "fonts/ubuntu_regular_17.h"
 
 // Set display resolution
 // OpenGL will use it to create a window
-#define HOR_RES		480
+#define HOR_RES		640
 #define VERT_RES	640
 
 
@@ -47,7 +45,7 @@ double g_points[50][2];
 char g_btn_press_cnt[4] = {0};// For same reason as above
 uint16_t g_btn_press_cnt_int = 0;
 uint32_t g_disp_buffer_counter = 0;
-uint32_t g_sidp_buffer_max_size = 100 * HOR_RES; //HOR_RES * VERT_RES;
+uint32_t g_sidp_buffer_max_size = HOR_RES * VERT_RES;
 
 
 char* btnm_map[] = {"1#", "q", "w", "e", "r", "t", "y","u","i","o","p", "<=","\n", //buttons: 0-11
@@ -140,14 +138,14 @@ void count_and_reset_event_handler(lui_obj_t* obj)
 	//printf("\nState Change occured. Event ID: %d", event);
 	//memset(event_name, 0, strlen(event_name));
 	uint8_t event = lui_object_get_event(obj);
-	if (event ==  LUI_EVENT_RELEASED)
+	if (event ==  LUI_EVENT_PRESSED)
 	{
 		if (obj == g_btn_count)
 		{
 			sprintf(g_btn_press_cnt, "%d", ++g_btn_press_cnt_int);
 			lui_label_set_text(g_lbl_cntr_value, g_btn_press_cnt);		
 		}
-		else if (obj == g_btn_reset)
+		else /* if (obj == g_btn_reset) */
 		{
 			g_btn_press_cnt_int = 0;
 			sprintf(g_btn_press_cnt, "%d", g_btn_press_cnt_int);
@@ -202,7 +200,7 @@ void popupbtn_event_handler(lui_obj_t* obj)
 	uint8_t event = lui_object_get_event(obj);
 	switch (event)
 	{
-	case LUI_EVENT_RELEASED:
+	case LUI_EVENT_PRESSED:
 		lui_scene_unset_popup(g_scene_one);
 		break;	
 	default:
@@ -276,7 +274,7 @@ void scn_change_event_handler(lui_obj_t* obj)
 {
 	uint8_t event = lui_object_get_event(obj);
 	
-	if (event == LUI_EVENT_RELEASED)
+	if (event == LUI_EVENT_PRESSED)
 	{
 		if (obj == g_btn_nxt_scn)
 		{
@@ -398,28 +396,28 @@ int main (int argc, char** argv)
 	//create and add scenes
 	g_scene_one = lui_scene_create();
 	//lui_object_set_bg_color(0, g_scene_one);
-	lui_scene_set_font(g_scene_one, &font_microsoft_16);
+	//lui_scene_set_font(g_scene_one, &font_microsoft_16);
 	//g_scene_one = lui_scene_destroy(g_scene_one);	// For destroying, assigning the return value is mandatory
 
 	//create and add scenes
 	g_scene_two = lui_scene_create();
 	//lui_object_set_bg_color(0, g_scene_two);
-	lui_scene_set_font(g_scene_two, &font_microsoft_16);
+	//lui_scene_set_font(g_scene_two, &font_microsoft_16);
 
 
 	g_scene_three = lui_scene_create();
 	//lui_object_set_bg_color(0, g_scene_two);
-	lui_scene_set_font(g_scene_two, &font_microsoft_16);
+	//lui_scene_set_font(g_scene_two, &font_microsoft_16);
 
 	//set the active scene. This scene will be rendered iby the lui_update()
-	lui_scene_set_active(g_scene_three);
+	lui_scene_set_active(g_scene_one);
 
 	//----------------------------------------------------------
 	//create label
 
 	lui_obj_t* lbl_heading = lui_label_create();
 	lui_object_add_to_parent(lbl_heading, g_scene_one);
-	lui_label_set_text(lbl_heading, "This is a demo of LameUIsefesrf\t\t\nawedaed aedaedawd :)");
+	lui_label_set_text(lbl_heading, "This is a demo of LameUI\nIt's work in progress :)");
 	lui_object_set_position(lbl_heading, 0, 1);
 	//lui_object_set_area(lbl_heading, HOR_RES, 20);
 	lui_object_set_bg_color(lbl_heading, LUI_STYLE_BUTTON_BG_COLOR);
@@ -452,7 +450,7 @@ int main (int argc, char** argv)
 
 	g_lbl_cntr_value = lui_label_create();
 	lui_object_add_to_parent(g_lbl_cntr_value, g_scene_one);
-	lui_label_set_font(g_lbl_cntr_value, &font_ubuntu_48);
+	//lui_label_set_font(g_lbl_cntr_value, &font_ubuntu_48);
 	lui_label_set_text(g_lbl_cntr_value, "0");
 	lui_object_set_x_pos(g_lbl_cntr_value, 85);
 	lui_object_set_y_pos(g_lbl_cntr_value, 270);
@@ -553,7 +551,7 @@ int main (int argc, char** argv)
 	lui_scene_set_popup_locked(g_scene_one, 0);
 	
 	lui_button_set_label_text(popup_btn, "OK");
-	lui_button_set_label_font(popup_btn, &font_microsoft_16);
+	//lui_button_set_label_font(popup_btn, &font_microsoft_16);
 	//lui_button_set_label_color(popup_btn, ILI_COLOR_WHITE);
 	//lui_button_set_extra_colors(popup_btn, lui_rgb(112, 0, 77), lui_rgb(171, 0, 117));
 	lui_object_set_callback(popup_btn, popupbtn_event_handler);
@@ -561,11 +559,13 @@ int main (int argc, char** argv)
 
 	// add a small list in scene 
 	lui_obj_t* list1 = lui_list_create();
+	//lui_list_set_font(list1, &font_microsoft_16);
 	lui_object_set_position(list1, 250, 340);
 	lui_object_set_area(list1, 215, 250);
 	lui_object_set_border_visibility(list1, 1);
 	lui_obj_t* item1 = lui_list_add_item(list1, "Shut Down");
-	lui_obj_t* item2 = lui_list_add_item(list1, "Restart");
+	lui_object_set_callback(item1, count_and_reset_event_handler);
+	lui_obj_t* item2 = lui_list_add_item(list1, LUI_ICON_RELAOD " Restart " LUI_ICON_POWER);
 	lui_obj_t* item3 = lui_list_add_item(list1, "Suspend");
 	lui_obj_t* item4 = lui_list_add_item(list1, "Log Out");
 	lui_obj_t* item5 = lui_list_add_item(list1, "Switch User");
@@ -600,6 +600,7 @@ int main (int argc, char** argv)
 
 	// add a big list in scene two
 	lui_obj_t* list2 = lui_list_create();
+	//lui_list_set_font(list2, &font_fixedsys_mono_16);
 	lui_object_set_position(list2, 90, 90);
 	lui_object_set_area(list2, 300, 280);
 	lui_object_set_border_visibility(list2, 1);
@@ -626,6 +627,7 @@ int main (int argc, char** argv)
 	lui_obj_t* item_list2_21 = lui_list_add_item(list2, "Enddddddddddd");
 	lui_list_prepare(list2);
 	lui_object_add_to_parent(list2, g_scene_two);
+	lui_object_set_enable_input(item_list2_3, 0);
 
 	// add a slider
 	slider1 = lui_slider_create();
@@ -700,35 +702,37 @@ int main (int argc, char** argv)
 
 
 	/* Add a btngrid in scene three */
-	btngrid = lui_btngrid_create();
+	btngrid = lui_keyboard_create();
 	lui_object_add_to_parent(btngrid, g_scene_three);
+	lui_keyboard_set_font(btngrid, &FONT_montserrat_regular_32);
+	// lui_object_set_area(btngrid, HOR_RES, 300);
+	// lui_btngrid_set_textmap(btngrid, btnm_map);
+	// lui_btngrid_set_propertymap(btngrid, default_kb_ctrl_lc_map);
+	// lui_btngrid_set_font(btngrid, &font_ubuntu_16);
+	// lui_btngrid_set_btn_checkable(btngrid, 0, 1);
+	// lui_btngrid_set_btn_checked(btngrid, 0, 1);
+	// lui_btngrid_set_btn_hidden(btngrid, 1, 1);
+	// lui_object_set_callback(btngrid, test);
+	// lui_object_set_visibility(btngrid, 1);
+	// lui_btngrid_set_btn_margin(btngrid, 3, 6);
+	// lui_btngrid_set_extra_colors(btngrid, lui_rgb(255, 0, 0), 0xffff, lui_rgb(10, 150, 0));
 	
-	
-	
-	lui_object_set_area(btngrid, HOR_RES, 300);
-	lui_btngrid_set_textmap(btngrid, btnm_map);
-	lui_btngrid_set_propertymap(btngrid, default_kb_ctrl_lc_map);
-	lui_btngrid_set_btn_checkable(btngrid, 0, 1);
-	lui_btngrid_set_btn_checked(btngrid, 0, 1);
-	lui_btngrid_set_btn_hidden(btngrid, 1, 1);
-	lui_object_set_callback(btngrid, test);
-	lui_object_set_visibility(btngrid, 1);
-	
-	((lui_btngrid_t *)(btngrid->obj_main_data))->font = &font_microsoft_16;
+	lui_scene_set_active(g_scene_three);
 
 	lui_obj_t* txtbox = lui_textbox_create();
 	lui_object_set_border_visibility(txtbox, 1);
 	char txt_buffer[50];
 	lui_textbox_set_text_buffer(txtbox, txt_buffer, 40);
-	lui_textbox_set_caret_index(txtbox, 0);
-	lui_textbox_insert_char(txtbox, 'a');
-	lui_textbox_set_caret_index(txtbox, 1);
-	lui_textbox_insert_string(txtbox, "helLo world boiiiiiiiii dfkjfdf", 40);
-	lui_textbox_set_caret_index(txtbox, 3);
-	lui_textbox_set_font(txtbox, &font_ubuntu_48);
+	//lui_textbox_set_caret_index(txtbox, 0);
+	//lui_textbox_insert_char(txtbox, 'a');
+	//lui_textbox_set_caret_index(txtbox, 1);
+	//lui_textbox_insert_string(txtbox, "helLo world boiiiiiiiii dfkjfdf", 40);
+	//lui_textbox_set_caret_index(txtbox, 3);
+	lui_textbox_set_font(txtbox, &FONT_montserrat_regular_32);
 	lui_object_add_to_parent(txtbox, g_scene_three);
-	lui_object_set_area(txtbox, 200, 60);
-	
+	lui_object_set_area(txtbox, 300, 260);
+
+	lui_keyboard_set_target_txtbox(btngrid, txtbox);
 
 	/*-----------------------------------------------------------------------------------
 	 -		Glut related functions for drawing and input handling						-

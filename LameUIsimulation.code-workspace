@@ -11,7 +11,13 @@
 			"gl.h": "c",
 			"font_fixedsys_mono_16.h": "c",
 			"font_ubuntu_16.h": "c",
-			"lame_ui.h": "c"
-		}
+			"lame_ui.h": "c",
+			"typeinfo": "c",
+			"bitmap_typedefs.h": "c",
+			"montserrat_regular_32.h": "c",
+			"ubuntu_regular_17.h": "c"
+		},
+		"todo-tree.tree.scanMode": "workspace only",
+		"todo-tree.tree.showCountsInTree": true
 	}
 }

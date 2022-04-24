@@ -1,7 +1,7 @@
 #####################################################################
 # Created by Avra Mitra											    #
 # Created on Apr 30, 2020										    #
-# Last modified on May 2, 2020										#
+# Last modified on April 24, 2022										#
 #####################################################################
 
 # Project name
@@ -29,6 +29,9 @@ BINDIR		 =  bin/
 SRCS   	 	 =  main.c
 # LameUI source file
 SRCS	 	+=  lame_ui.c
+# Extra fonts (in LameUI/fonts directory)
+SRCS		+=  montserrat_regular_32.c
+SRCS		+=	ubuntu_regular_17.c
 #--------------------------------------------------------------------
 
 #------------ [COMPILED OBJECT FILES] -------------------------------
@@ -42,7 +45,7 @@ INCLS		 =  -Iinc
 # Include for lameui files
 INCLS 		+=  -ILameUI/
 # Includes for Font and bitmap related files
-INCLS 		+=  -IFontsEmbedded
+INCLS 		+=  -ILameUI/fonts/
 #--------------------------------------------------------------------
 
 #------------ [USED LIBRARIES] --------------------------------------
@@ -115,8 +118,13 @@ $(OBJDIR)%.o: $(SRCDIR_USER)%.c
 
 
 # Rule to make object files of lameui
-$(OBJDIR)%.o: $(SRCDIR_LAMEUI)%.c
+$(OBJDIR)%.o: $(SRCDIR_LAMEUI)%.c  
 		@echo [Compiling LameUI...]
+		$(CC) -c -o $@ $< $(INCLS) $(CFLAGS)
+
+# Rule to make object files of lameui fonts (font c files must be in LameUI/fonts/)
+$(OBJDIR)%.o: $(SRCDIR_LAMEUI)/fonts/%.c
+		@echo [Compiling LameUI Fonts...]
 		$(CC) -c -o $@ $< $(INCLS) $(CFLAGS)
 
 
