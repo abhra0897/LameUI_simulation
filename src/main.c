@@ -157,6 +157,23 @@ void count_and_reset_event_handler(lui_obj_t* obj)
 	}
 }
 
+void textbox_callback(lui_obj_t* obj_txtbox)
+{
+	uint8_t event = lui_object_get_event(obj_txtbox);
+	if (event == LUI_EVENT_ENTERED)
+	{
+		fprintf(stderr, "Entered\n");
+		lui_object_set_visibility(btngrid, 1);
+		lui_keyboard_set_target_txtbox(btngrid, obj_txtbox);
+	}
+	else if (event == LUI_EVENT_EXITED)
+	{
+		fprintf(stderr, "Exited\n");
+		lui_object_set_visibility(btngrid, 0);
+		lui_keyboard_set_target_txtbox(btngrid, NULL);
+	}
+}
+
 void test(lui_obj_t* obj)
 {
 	uint8_t event = lui_object_get_event(obj);
@@ -703,6 +720,7 @@ int main (int argc, char** argv)
 
 	/* Add a btngrid in scene three */
 	btngrid = lui_keyboard_create();
+	lui_object_set_visibility(btngrid, 0);
 	lui_object_add_to_parent(btngrid, g_scene_three);
 	lui_keyboard_set_font(btngrid, &FONT_montserrat_regular_32);
 	// lui_object_set_area(btngrid, HOR_RES, 300);
@@ -721,6 +739,7 @@ int main (int argc, char** argv)
 
 	lui_obj_t* txtbox = lui_textbox_create();
 	lui_object_set_border_visibility(txtbox, 1);
+	lui_object_set_callback(txtbox, textbox_callback);
 	char txt_buffer[50];
 	lui_textbox_set_text_buffer(txtbox, txt_buffer, 40);
 	//lui_textbox_set_caret_index(txtbox, 0);
@@ -730,9 +749,7 @@ int main (int argc, char** argv)
 	//lui_textbox_set_caret_index(txtbox, 3);
 	lui_textbox_set_font(txtbox, &FONT_montserrat_regular_32);
 	lui_object_add_to_parent(txtbox, g_scene_three);
-	lui_object_set_area(txtbox, 300, 260);
-
-	lui_keyboard_set_target_txtbox(btngrid, txtbox);
+	lui_object_set_area(txtbox, HOR_RES, 260);
 
 	/*-----------------------------------------------------------------------------------
 	 -		Glut related functions for drawing and input handling						-
