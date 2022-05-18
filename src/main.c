@@ -14,12 +14,17 @@
 
 // Set display resolution
 // OpenGL will use it to create a window
-#define HOR_RES		640
+#define HOR_RES		720
 #define VERT_RES	640
 
 
 // following UI elements are made global so we can access them in the event handler
-lui_touch_input_data_t g_input;
+lui_touch_input_data_t g_input = 
+{
+	.is_pressed = 0,
+	.x = -1,
+	.y = -1
+};
 lui_obj_t* g_scene_one;
 lui_obj_t* g_scene_two;
 lui_obj_t* g_scene_three;
@@ -48,27 +53,6 @@ uint32_t g_disp_buffer_counter = 0;
 uint32_t g_sidp_buffer_max_size = HOR_RES * VERT_RES;
 
 
-char* btnm_map[] = {"1#", "q", "w", "e", "r", "t", "y","u","i","o","p", "<=","\n", //buttons: 0-11
-                                    "ABC", "a", "s", "d", "f", "g", "h","j","k","l", "Enter","\n",   //buttons: 12-22
-                                  "-","_","z", "x", "c","v","b","n","m",",",".",":","\n",           //buttons: 23-34
-                                  "[X]"," <<","  ", ">> ", "OK", "\0"};  
-char* btnm_map_2[] = {"1#", "Q", "W", "E", "R", "T", "Y","U","I","O","P", "<=","\n", //buttons: 0-11
-                                    "abc", "A", "S", "D", "F", "G", "H","J","K","L", "Enter","\n",   //buttons: 12-22
-                                  "-","_","Z", "X", "C","V","B","N","M",",",".",":","\n",           //buttons: 23-34
-                                  "[X]"," <<","  ", ">> ", "OK", "\0"};
-
-uint8_t default_kb_ctrl_lc_map[] = {
-        5 | _LUI_BTNGRID_MASK_BTN_IS_CHECKABLE, 4, 4 | _LUI_BTNGRID_MASK_BTN_IS_HIDDEN, 4, 4, 4, 4, 4, 4, 4, 4, 7,
-        6, 3, 3, 3, 3, 3 | _LUI_BTNGRID_MASK_BTN_IS_DISABLED, 3, 3, 3, 3, 7,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        2, 2, 6, 2, 2
-    };
-uint8_t default_kb_ctrl_lc_map_2[] = {
-        8 | _LUI_BTNGRID_MASK_BTN_IS_CHECKABLE, 4, 4 | _LUI_BTNGRID_MASK_BTN_IS_HIDDEN, 4, 4, 4, 4, 4, 4, 4, 4, 7,
-        6, 3, 3, 3, 3, 3 | _LUI_BTNGRID_MASK_BTN_IS_DISABLED, 3, 3, 3, 3, 7,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        2, 2, 6, 2, 2
-    };
 // Callback functions for LameUI ---------------------------------------------------
 void count_and_reset_event_handler(lui_obj_t* obj);
 void popupbtn_event_handler(lui_obj_t* obj);
@@ -162,50 +146,11 @@ void textbox_callback(lui_obj_t* obj_txtbox)
 	uint8_t event = lui_object_get_event(obj_txtbox);
 	if (event == LUI_EVENT_ENTERED)
 	{
-		fprintf(stderr, "Entered\n");
-		lui_object_set_visibility(btngrid, 1);
 		lui_keyboard_set_target_txtbox(btngrid, obj_txtbox);
 	}
 	else if (event == LUI_EVENT_EXITED)
 	{
-		fprintf(stderr, "Exited\n");
-		lui_object_set_visibility(btngrid, 0);
 		lui_keyboard_set_target_txtbox(btngrid, NULL);
-	}
-}
-
-void test(lui_obj_t* obj)
-{
-	uint8_t event = lui_object_get_event(obj);
-	uint8_t btn_index = lui_btngrid_get_acive_btn_index(obj);
-	if (event ==  LUI_EVENT_PRESSED)
-	{
-		fprintf(stderr, "pressed: %d\n", btn_index);
-	}
-	else if (event ==  LUI_EVENT_RELEASED)
-	{
-		fprintf(stderr, "released: %d\n", btn_index);
-	}
-	else if (event ==  LUI_EVENT_CHECK_CHANGED)
-	{
-		uint8_t chk_stat = lui_btngrid_get_btn_check_status(obj, btn_index);
-		fprintf(stderr, "chk changed: %d\t status:%d\n", btn_index, chk_stat);
-		
-		if (chk_stat)
-		{
-			//lui_object_set_area(btngrid, HOR_RES, 150);
-			//lui_btngrid_set_textmap(btngrid, btnm_map);
-			lui_btngrid_set_propertymap(btngrid, default_kb_ctrl_lc_map);
-		}
-		else
-		{
-			//lui_object_set_area(btngrid, HOR_RES, 300);
-			//lui_btngrid_set_textmap(btngrid, btnm_map_2);
-			lui_btngrid_set_propertymap(btngrid, default_kb_ctrl_lc_map_2);
-			lui_btngrid_set_btn_text(btngrid, 4, "walla");
-		}
-		// lui_btngrid_set_propertymap(btngrid, default_kb_ctrl_lc_map);
-		lui_btngrid_set_btn_checked(btngrid, 0, chk_stat);
 	}
 }
 
@@ -218,7 +163,8 @@ void popupbtn_event_handler(lui_obj_t* obj)
 	switch (event)
 	{
 	case LUI_EVENT_PRESSED:
-		lui_scene_unset_popup(g_scene_one);
+		lui_object_set_visibility(g_popup_panel, 0);
+		fprintf(stderr, "Invisible!\n");
 		break;	
 	default:
 		break;
@@ -239,12 +185,14 @@ void enable_wifi_and_bt_event_handler(lui_obj_t* obj)
 			if (val == 1)
 			{
 				lui_label_set_text(g_popup_label, "Alert:\nWiFi is enabled");
-				lui_scene_set_popup(g_scene_one, g_popup_panel);
+				lui_object_set_visibility(g_popup_panel, 1);
+				fprintf(stderr, "Visible!\n");
 			}
 			else
 			{
 				lui_label_set_text(g_popup_label, "Alert:\nWiFi is disabled");
-				lui_scene_set_popup(g_scene_one, g_popup_panel);
+				lui_object_set_visibility(g_popup_panel, 1);
+				fprintf(stderr, "Visible!\n");
 			}
 		}
 		else if (obj == g_swtch_enable_bluetooth)
@@ -252,12 +200,14 @@ void enable_wifi_and_bt_event_handler(lui_obj_t* obj)
 			if (val == 1)
 			{
 				lui_label_set_text(g_popup_label, "Alert:\nBluetooth is enabled");
-				lui_scene_set_popup(g_scene_one, g_popup_panel);
+				lui_object_set_visibility(g_popup_panel, 1);
+				fprintf(stderr, "Visible!\n");
 			}
 			else
 			{
 				lui_label_set_text(g_popup_label, "Alert:\nBluetooth is disabled");
-				lui_scene_set_popup(g_scene_one, g_popup_panel);
+				lui_object_set_visibility(g_popup_panel, 1);
+				fprintf(stderr, "Visible!\n");
 			}
 		}
 	}
@@ -551,22 +501,26 @@ int main (int argc, char** argv)
 	// -------------------------------------------
 	// create popup group
 	g_popup_panel = lui_panel_create();
+	lui_object_add_to_parent(g_popup_panel, g_scene_one);
 	g_popup_label = lui_label_create();
 	lui_obj_t* popup_btn = lui_button_create();
-	lui_object_add_to_parent(g_popup_label, g_popup_panel);
 	lui_object_add_to_parent(popup_btn, g_popup_panel);
+	lui_object_add_to_parent(g_popup_label, g_popup_panel);
+	
 	lui_label_set_text(g_popup_label, "This is a popup");
 	
 	lui_object_set_position(popup_btn, 110, 80);
 	lui_object_set_position(g_popup_label, 5, 12);
 	lui_object_set_position(g_popup_panel, 80, 240);
 
-	lui_object_set_area(g_popup_label, 158, 18);
+	//lui_object_set_area(g_popup_label, 158, 18);
 	lui_object_set_area(popup_btn, 80, 28);
 	lui_object_set_area(g_popup_panel, 300, 140);
 
-	lui_scene_set_popup_locked(g_scene_one, 0);
-	
+	//lui_object_set_visibility(g_popup_panel, 0);
+	lui_object_set_layer(g_popup_panel, LUI_LAYER_POPUP);
+
+
 	lui_button_set_label_text(popup_btn, "OK");
 	//lui_button_set_label_font(popup_btn, &font_microsoft_16);
 	//lui_button_set_label_color(popup_btn, ILI_COLOR_WHITE);
@@ -720,8 +674,8 @@ int main (int argc, char** argv)
 
 	/* Add a btngrid in scene three */
 	btngrid = lui_keyboard_create();
-	lui_object_set_visibility(btngrid, 0);
-	lui_object_add_to_parent(btngrid, g_scene_three);
+	//lui_object_set_visibility(btngrid, 0);
+	lui_object_add_to_parent(btngrid, g_scene_one);
 	lui_keyboard_set_font(btngrid, &FONT_montserrat_regular_32);
 	// lui_object_set_area(btngrid, HOR_RES, 300);
 	// lui_btngrid_set_textmap(btngrid, btnm_map);
@@ -735,22 +689,87 @@ int main (int argc, char** argv)
 	// lui_btngrid_set_btn_margin(btngrid, 3, 6);
 	// lui_btngrid_set_extra_colors(btngrid, lui_rgb(255, 0, 0), 0xffff, lui_rgb(10, 150, 0));
 	
-	lui_scene_set_active(g_scene_three);
+	//lui_scene_set_active(g_scene_three);
 
-	lui_obj_t* txtbox = lui_textbox_create();
-	lui_object_set_border_visibility(txtbox, 1);
-	lui_object_set_callback(txtbox, textbox_callback);
-	char txt_buffer[50];
-	lui_textbox_set_text_buffer(txtbox, txt_buffer, 40);
-	//lui_textbox_set_caret_index(txtbox, 0);
-	//lui_textbox_insert_char(txtbox, 'a');
-	//lui_textbox_set_caret_index(txtbox, 1);
-	//lui_textbox_insert_string(txtbox, "helLo world boiiiiiiiii dfkjfdf", 40);
-	//lui_textbox_set_caret_index(txtbox, 3);
-	lui_textbox_set_font(txtbox, &FONT_montserrat_regular_32);
-	lui_object_add_to_parent(txtbox, g_scene_three);
-	lui_object_set_area(txtbox, HOR_RES, 260);
+	
+		lui_obj_t* lbl_txtbox_name = lui_label_create();
+		lui_label_set_text(lbl_txtbox_name, "Your Name:");
+		lui_object_set_position(lbl_txtbox_name, 480, 25);
+		lui_object_add_to_parent(lbl_txtbox_name, g_scene_one);
 
+		lui_obj_t* txtbox_name = lui_textbox_create();
+		lui_object_set_border_visibility(txtbox_name, 1);
+		lui_object_set_callback(txtbox_name, textbox_callback);
+		char name[50];
+		lui_textbox_set_text_buffer(txtbox_name, name, 40);
+		lui_object_add_to_parent(txtbox_name, g_scene_one);
+		lui_object_set_position(txtbox_name, 480, 50);
+		lui_object_set_area(txtbox_name, 720-490, 40);
+	
+
+	
+		lui_obj_t* lbl_txtbox_addr = lui_label_create();
+		lui_label_set_text(lbl_txtbox_addr, "Street Address:");
+		lui_object_set_position(lbl_txtbox_addr, 480, 100);
+		lui_object_add_to_parent(lbl_txtbox_addr, g_scene_one);
+
+		lui_obj_t* txtbox_address = lui_textbox_create();
+		lui_object_set_border_visibility(txtbox_address, 1);
+		lui_object_set_callback(txtbox_address, textbox_callback);
+		char addr[50];
+		lui_textbox_set_text_buffer(txtbox_address, addr, 40);
+		lui_object_add_to_parent(txtbox_address, g_scene_one);
+		lui_object_set_position(txtbox_address, 480, 125);
+		lui_object_set_area(txtbox_address, 720-490, 80);
+	
+
+	
+		lui_obj_t* lbl_txtbox_age = lui_label_create();
+		lui_label_set_text(lbl_txtbox_age, "Age:");
+		lui_object_set_position(lbl_txtbox_age, 480, 210);
+		lui_object_add_to_parent(lbl_txtbox_age, g_scene_one);
+
+		lui_obj_t* txtbox_age = lui_textbox_create();
+		lui_object_set_border_visibility(txtbox_age, 1);
+		lui_object_set_callback(txtbox_age, textbox_callback);
+		char age[3];
+		lui_textbox_set_text_buffer(txtbox_age, age, 40);
+		lui_object_add_to_parent(txtbox_age, g_scene_one);
+		lui_object_set_position(txtbox_age, 480, 235);
+		lui_object_set_area(txtbox_age, 720-540, 40);
+	
+
+	
+		lui_obj_t* lbl_txtbox_father = lui_label_create();
+		lui_label_set_text(lbl_txtbox_father, "Father's Name:");
+		lui_object_set_position(lbl_txtbox_father, 480, 280);
+		lui_object_add_to_parent(lbl_txtbox_father, g_scene_one);
+
+		lui_obj_t* txtbox_father = lui_textbox_create();
+		lui_object_set_border_visibility(txtbox_father, 1);
+		lui_object_set_callback(txtbox_father, textbox_callback);
+		char father[50];
+		lui_textbox_set_text_buffer(txtbox_father, father, 40);
+		lui_object_add_to_parent(txtbox_father, g_scene_one);
+		lui_object_set_position(txtbox_father, 480, 305);
+		lui_object_set_area(txtbox_father, 720-490, 40);
+	
+
+	
+		lui_obj_t* lbl_txtbox_mother = lui_label_create();
+		lui_label_set_text(lbl_txtbox_mother, "Mother's Name:");
+		lui_object_set_position(lbl_txtbox_mother, 480, 350);
+		lui_object_add_to_parent(lbl_txtbox_mother, g_scene_one);
+
+		lui_obj_t* txtbox_mother = lui_textbox_create();
+		lui_object_set_border_visibility(txtbox_mother, 1);
+		lui_object_set_callback(txtbox_mother, textbox_callback);
+		char mother[50];
+		lui_textbox_set_text_buffer(txtbox_mother, mother, 40);
+		lui_object_add_to_parent(txtbox_mother, g_scene_one);
+		lui_object_set_position(txtbox_mother, 480, 375);
+		lui_object_set_area(txtbox_mother, 720-490, 40);
+	
 	/*-----------------------------------------------------------------------------------
 	 -		Glut related functions for drawing and input handling						-
 	 -----------------------------------------------------------------------------------*/
@@ -783,8 +802,9 @@ void myMouseMove(int x, int y)
 	//printf ("[DEBUG] void myMouse( int x: %d, int y: %d )\n", x, y);			//send all output to screen
 
 	/* Commented out to simulate touch input */
-	//g_input.x = x;
-	//g_input.y = y;
+	g_input.is_pressed = 0;
+	g_input.x = -1;
+	g_input.y = -1;
 }
 
 // This function is called back by glut when mouse is moved while being pressed
@@ -799,7 +819,9 @@ void myMousePressMove(int x, int y)
 // This is to simulates touch input
 void myMousePress(int button, int state, int x, int y)
 {
-	
+	g_input.is_pressed = 0;
+	g_input.x = -1;
+	g_input.y = -1;
 	if (button == GLUT_LEFT)
 	{
 		if (state == GLUT_DOWN)
@@ -807,13 +829,6 @@ void myMousePress(int button, int state, int x, int y)
 			g_input.is_pressed = 1;
 			g_input.x = x;
 			g_input.y = y;
-		}
-			
-		else
-		{
-			g_input.is_pressed = 0;
-			g_input.x = -1;
-			g_input.y = -1;
 		}
 	}
 }
