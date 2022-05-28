@@ -344,7 +344,8 @@ int main (int argc, char** argv)
 	 ###################################################################################*/
 
 	// [IMPORTANT:] do it at the begining. Mandatory!
-	lui_init();
+	uint8_t memblk[20000];
+	lui_init(memblk, sizeof(memblk));
 
 	//----------------------------------------------------------
 	//creating display driver variable for lame_ui
