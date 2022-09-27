@@ -31,7 +31,6 @@ SRCS   	 	 =  small_example.c
 SRCS	 	+=  lame_ui.c
 # Extra fonts (in LameUI/fonts directory)
 SRCS		+=  montserrat_regular_32.c
-SRCS		+=	ubuntu_regular_17.c
 #--------------------------------------------------------------------
 
 #------------ [COMPILED OBJECT FILES] -------------------------------

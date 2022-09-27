@@ -10,7 +10,6 @@
 #include "../LameUI/lame_ui.h"
 #include <unistd.h>
 #include "fonts/montserrat_regular_32.h"
-#include "fonts/ubuntu_regular_17.h"
 
 // Set display resolution
 // OpenGL will use it to create a window
@@ -445,33 +444,20 @@ int main (int argc, char** argv)
 
     chkbox_football = lui_checkbox_create();
     lui_checkbox_set_checked(chkbox_football);
+	lui_checkbox_set_label_text(chkbox_football, "Football");
     lui_object_set_position(chkbox_football, 125, 180);
     lui_object_add_to_parent(chkbox_football, g_scene_one);
 
-    lui_obj_t* lbl_football = lui_label_create();
-    lui_object_add_to_parent(lbl_football, g_scene_one);
-    lui_label_set_text(lbl_football, "Football");
-    lui_object_set_position(lbl_football, 150, 180);
-
     chkbox_cricket = lui_checkbox_create();
+	lui_checkbox_set_label_text(chkbox_cricket, "Cricket");
     lui_object_set_position(chkbox_cricket, 125, 202);
     lui_object_add_to_parent(chkbox_cricket, g_scene_one);
 
-    lui_obj_t* lbl_cricket = lui_label_create();
-    lui_object_add_to_parent(lbl_cricket, g_scene_one);
-    lui_label_set_text(lbl_cricket, "Cricket");
-    lui_object_set_position(lbl_cricket, 150, 202);
-
     chkbox_hockey = lui_checkbox_create();
+	lui_checkbox_set_label_text(chkbox_hockey, "Hockey");
     lui_object_set_position(chkbox_hockey, 125, 224);
     lui_object_add_to_parent(chkbox_hockey, g_scene_one);
 
-    lui_obj_t* lbl_hockey = lui_label_create();
-    lui_object_add_to_parent(lbl_hockey, g_scene_one);
-    lui_label_set_text(lbl_hockey, "Hockey");
-    lui_object_set_position(lbl_hockey, 150, 224);
-  
-	
 
 	// add a button to go to next scene (g_scene_two)
 	g_btn_nxt_scn = lui_button_create();
