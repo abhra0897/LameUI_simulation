@@ -410,7 +410,7 @@ int main (int argc, char** argv)
 	//lui_list_set_font(list1, &font_microsoft_16);
 	lui_object_set_position(list1, 10, 155);
 	lui_object_set_area(list1, 110, 160);
-	lui_object_set_border_visibility(list1, 1);
+	lui_object_set_border_visibility(list1, 0);
 	lui_list_add_item(list1, "--Select--");
 	lui_list_add_item(list1, "Algerian");
 	lui_list_add_item(list1, " Amharic ");

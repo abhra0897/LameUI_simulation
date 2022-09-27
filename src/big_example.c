@@ -9,8 +9,9 @@
 #include <inttypes.h>
 #include "../LameUI/lame_ui.h"
 #include <unistd.h>
-#include "fonts/montserrat_regular_32.h"
-#include "fonts/ubuntu_regular_17.h"
+#include "fonts/montserrat_regular_48.h"
+#include "fonts/ubuntu_regular_32.h"
+#include "fonts/ubuntu_regular_20.h"
 
 // Set display resolution
 // OpenGL will use it to create a window
@@ -27,7 +28,6 @@ lui_touch_input_data_t g_input =
 };
 lui_obj_t* g_scene_one;
 lui_obj_t* g_scene_two;
-lui_obj_t* g_scene_three;
 lui_obj_t* g_lbl_cntr_value;
 lui_obj_t* g_popup_panel;
 lui_obj_t* g_popup_label;
@@ -42,8 +42,8 @@ lui_obj_t* g_lbl_slider1_val;
 lui_obj_t* g_lbl_slider2_val;
 lui_obj_t* slider1;
 lui_obj_t* slider2;
-
-lui_obj_t* btngrid;
+lui_obj_t* keyboard;
+lui_obj_t* btngrid_numpad;
 
 
 double g_points[50][2];
@@ -146,11 +146,11 @@ void textbox_callback(lui_obj_t* obj_txtbox)
 	uint8_t event = lui_object_get_event(obj_txtbox);
 	if (event == LUI_EVENT_ENTERED)
 	{
-		lui_keyboard_set_target_txtbox(btngrid, obj_txtbox);
+		lui_keyboard_set_target_txtbox(keyboard, obj_txtbox);
 	}
 	else if (event == LUI_EVENT_EXITED)
 	{
-		lui_keyboard_set_target_txtbox(btngrid, NULL);
+		lui_keyboard_set_target_txtbox(keyboard, NULL);
 	}
 }
 
@@ -252,6 +252,17 @@ void scn_change_event_handler(lui_obj_t* obj)
 			lui_scene_set_active(g_scene_one); 
 		}
 
+	}
+}
+
+void list1_cb(lui_obj_t* obj)
+{
+	uint8_t event = lui_object_get_event(obj);
+	if (event == LUI_EVENT_PRESSED)
+	{
+		char* txt = lui_list_get_item_text(obj, lui_list_get_selected_item_index(obj));
+		if (txt != NULL)
+			fprintf(stderr, "Selected: %s\n", txt);
 	}
 }
 
@@ -373,7 +384,6 @@ int main (int argc, char** argv)
 	//lui_scene_set_font(g_scene_two, &font_microsoft_16);
 
 
-	g_scene_three = lui_scene_create();
 	//lui_object_set_bg_color(0, g_scene_two);
 	//lui_scene_set_font(g_scene_two, &font_microsoft_16);
 
@@ -384,8 +394,10 @@ int main (int argc, char** argv)
 	//create label
 
 	lui_obj_t* lbl_heading = lui_label_create();
+	lui_object_set_area(lbl_heading, HOR_RES, lui_gfx_get_font_height(&FONT_ubuntu_regular_32));
+	lui_label_set_font(lbl_heading, &FONT_ubuntu_regular_32);
 	lui_object_add_to_parent(lbl_heading, g_scene_one);
-	lui_label_set_text(lbl_heading, "This is a demo of LameUI\nIt's work in progress :)");
+	lui_label_set_text(lbl_heading, "                          LameUI            Demo            Application                          ");
 	lui_object_set_position(lbl_heading, 0, 1);
 	//lui_object_set_area(lbl_heading, HOR_RES, 20);
 	lui_object_set_bg_color(lbl_heading, LUI_STYLE_BUTTON_BG_COLOR);
@@ -403,7 +415,7 @@ int main (int argc, char** argv)
 	lui_object_add_to_parent(g_grph, g_scene_one);
 	lui_linechart_set_data_source(g_grph, (double* )&g_points, 50);
 	//lui_linechart_set_data_range(g_grph, -4, 4);
-	lui_object_set_position(g_grph, 20, 50);
+	lui_object_set_position(g_grph, 20, 60);
 	lui_object_set_area(g_grph, 440, 200);
 
 
@@ -418,7 +430,7 @@ int main (int argc, char** argv)
 
 	g_lbl_cntr_value = lui_label_create();
 	lui_object_add_to_parent(g_lbl_cntr_value, g_scene_one);
-	//lui_label_set_font(g_lbl_cntr_value, &font_ubuntu_48);
+	lui_label_set_font(g_lbl_cntr_value, &FONT_montserrat_regular_48);
 	lui_label_set_text(g_lbl_cntr_value, "0");
 	lui_object_set_x_pos(g_lbl_cntr_value, 85);
 	lui_object_set_y_pos(g_lbl_cntr_value, 270);
@@ -431,14 +443,14 @@ int main (int argc, char** argv)
 	lui_object_add_to_parent(g_btn_count, g_scene_one);
 	lui_object_set_position(g_btn_count, 230, 280);
 	lui_object_set_area(g_btn_count, 100, 40);
-	lui_button_set_label_text(g_btn_count, "Count");
+	lui_button_set_label_text(g_btn_count, LUI_ICON_ADD " Count");
 	lui_object_set_callback(g_btn_count, count_and_reset_event_handler);
 
 	g_btn_reset = lui_button_create();
 	lui_object_add_to_parent(g_btn_reset, g_scene_one);
 	lui_object_set_position(g_btn_reset, 350, 280);
 	lui_object_set_area(g_btn_reset, 100, 40);
-	lui_button_set_label_text(g_btn_reset, "Reset");
+	lui_button_set_label_text(g_btn_reset, LUI_ICON_RELOAD " Reset");
 	lui_object_set_callback(g_btn_reset, count_and_reset_event_handler);
 
 
@@ -452,7 +464,7 @@ int main (int argc, char** argv)
 
 	lui_obj_t* lbl_enable_wifi = lui_label_create();
 	lui_object_add_to_parent(lbl_enable_wifi, panel_group_switches);
-	lui_label_set_text(lbl_enable_wifi, "Enable WiFi");
+	lui_label_set_text(lbl_enable_wifi, "  " LUI_ICON_WIFI "   WiFi");
 	lui_object_set_position(lbl_enable_wifi, 5, 5);
 	lui_object_set_area(lbl_enable_wifi, 140, 20);
 
@@ -463,7 +475,7 @@ int main (int argc, char** argv)
 
 	lui_obj_t* lbl_enable_bluetooth = lui_label_create();
 	lui_object_add_to_parent(lbl_enable_bluetooth, panel_group_switches);
-	lui_label_set_text(lbl_enable_bluetooth, "Enable Bluetooth");
+	lui_label_set_text(lbl_enable_bluetooth, "  " LUI_ICON_BLUETOOTH "   Bluetooth");
 	lui_object_set_position(lbl_enable_bluetooth, 5, 35);
 	lui_object_set_area(lbl_enable_bluetooth, 140, 20);
 
@@ -472,19 +484,19 @@ int main (int argc, char** argv)
 	lui_object_set_position(g_swtch_enable_bluetooth, 190, 35);
 	lui_object_set_callback(g_swtch_enable_bluetooth, enable_wifi_and_bt_event_handler);
 
-	lui_obj_t* lbl_priv_chat = lui_label_create();
-	lui_object_add_to_parent(lbl_priv_chat, panel_group_switches);
-	lui_label_set_text(lbl_priv_chat, "Private chat");
-	lui_object_set_position(lbl_priv_chat, 5, 65);
-	lui_object_set_area(lbl_priv_chat, 140, 20);
+	lui_obj_t* lbl_location = lui_label_create();
+	lui_object_add_to_parent(lbl_location, panel_group_switches);
+	lui_label_set_text(lbl_location, "  " LUI_ICON_LOCATION "   Location");
+	lui_object_set_position(lbl_location, 5, 65);
+	lui_object_set_area(lbl_location, 140, 20);
 
-	lui_obj_t* swtch_priv_chat = lui_switch_create();
-	lui_object_add_to_parent(swtch_priv_chat, panel_group_switches);
-	lui_object_set_position(swtch_priv_chat, 190, 65);
+	lui_obj_t* swtch_location = lui_switch_create();
+	lui_object_add_to_parent(swtch_location, panel_group_switches);
+	lui_object_set_position(swtch_location, 190, 65);
 
 	lui_obj_t* lbl_notification = lui_label_create();
 	lui_object_add_to_parent(lbl_notification, panel_group_switches);
-	lui_label_set_text(lbl_notification, "Notifications");
+	lui_label_set_text(lbl_notification, "  " LUI_ICON_VOLUME_MEDIUM "   Sound");
 	lui_object_set_position(lbl_notification, 5, 95);
 	lui_object_set_area(lbl_notification, 140, 20);
 
@@ -533,20 +545,22 @@ int main (int argc, char** argv)
 
 	// add a small list in scene 
 	lui_obj_t* list1 = lui_list_create();
-	//lui_list_set_font(list1, &font_microsoft_16);
+	lui_list_set_max_items_count(list1, 20);
+	lui_list_set_dropdown_mode(list1, 1);
 	lui_object_set_position(list1, 250, 340);
 	lui_object_set_area(list1, 215, 250);
-	lui_object_set_border_visibility(list1, 1);
-	lui_list_set_text_align(list1, ALIGN_CENTER);
-	lui_obj_t* item1 = lui_list_add_item(list1, "Shut Down");
-	lui_object_set_callback(item1, count_and_reset_event_handler);
-	lui_obj_t* item2 = lui_list_add_item(list1, LUI_ICON_RELAOD " Restart " LUI_ICON_POWER);
-	lui_obj_t* item3 = lui_list_add_item(list1, "Suspend");
-	lui_obj_t* item4 = lui_list_add_item(list1, "Log Out");
-	lui_obj_t* item5 = lui_list_add_item(list1, "Switch User");
-	lui_obj_t* item6 = lui_list_add_item(list1, "Hibernate");
-	lui_obj_t* item7 = lui_list_add_item(list1, "Lock screen");
+	lui_object_set_border_visibility(list1, 0);
+	lui_list_add_item(list1, "-- Select Language --");
+	lui_list_add_item(list1, "Algerian");
+	lui_list_add_item(list1, " Amharic ");
+	lui_list_add_item(list1, "Assamese");
+	lui_list_add_item(list1, "Bavarian");
+	lui_list_add_item(list1, "Bengali");
+	lui_list_add_item(list1, "Czech");
+	lui_list_add_item(list1, "Deccan");
+	lui_list_add_item(list1, "Dutch");
 	lui_list_prepare(list1);
+	lui_object_set_callback(list1, list1_cb);
 	lui_object_add_to_parent(list1, g_scene_one);
 	
 
@@ -555,7 +569,7 @@ int main (int argc, char** argv)
 	lui_object_add_to_parent(g_btn_nxt_scn, g_scene_one);
 	lui_object_set_position(g_btn_nxt_scn, 140, 595);
 	lui_object_set_area(g_btn_nxt_scn, 200, 40);
-	lui_button_set_label_text(g_btn_nxt_scn, "Next Scene ->");
+	lui_button_set_label_text(g_btn_nxt_scn, "Next Scene " LUI_ICON_ARROW_FORWARD);
 	lui_object_set_callback(g_btn_nxt_scn, scn_change_event_handler);
 
 	// add a button to go to prev scene (g_scene_one)
@@ -566,49 +580,12 @@ int main (int argc, char** argv)
 	lui_button_set_label_text(g_btn_prev_scn, "<- Prev Scene");
 	lui_object_set_callback(g_btn_prev_scn, scn_change_event_handler);
 
-	// a text label for g_scene_two
-	lui_obj_t* lbl_list_descr = lui_label_create();
-	lui_object_add_to_parent(lbl_list_descr, g_scene_two);
-	lui_label_set_text(lbl_list_descr, "This is a long list. For long lists that require multiple pages, navigation buttons are automatically added..");
-	lui_object_set_position(lbl_list_descr, 90, 10);
-	lui_object_set_area(lbl_list_descr, 300, 70);
-
-	// add a big list in scene two
-	lui_obj_t* list2 = lui_list_create();
-	//lui_list_set_font(list2, &font_fixedsys_mono_16);
-	lui_object_set_position(list2, 90, 90);
-	lui_object_set_area(list2, 300, 280);
-	lui_object_set_border_visibility(list2, 1);
-	lui_obj_t* item_list2_1 = lui_list_add_item(list2, "Hello");
-	lui_obj_t* item_list2_2 = lui_list_add_item(list2, "Hi there");
-	lui_obj_t* item_list2_3 = lui_list_add_item(list2, "I am good");
-	lui_obj_t* item_list2_4 = lui_list_add_item(list2, "This is");
-	lui_obj_t* item_list2_5 = lui_list_add_item(list2, "a test");
-	lui_obj_t* item_list2_6 = lui_list_add_item(list2, "and it's");
-	lui_obj_t* item_list2_7 = lui_list_add_item(list2, "working!!");
-	lui_obj_t* item_list2_8 = lui_list_add_item(list2, "I'm happy");
-	lui_obj_t* item_list2_9 = lui_list_add_item(list2, "yaaaawn");
-	lui_obj_t* item_list2_10 = lui_list_add_item(list2, "Gonna sleep");
-	lui_obj_t* item_list2_11 = lui_list_add_item(list2, "Worked hard");
-	lui_obj_t* item_list2_12 = lui_list_add_item(list2, "Now bye");
-	lui_obj_t* item_list2_13 = lui_list_add_item(list2, "Hey you..!!");
-	lui_obj_t* item_list2_14 = lui_list_add_item(list2, "Adding more items");
-	lui_obj_t* item_list2_15 = lui_list_add_item(list2, "Ha hahahah");
-	lui_obj_t* item_list2_16 = lui_list_add_item(list2, "It's simple");
-	lui_obj_t* item_list2_17 = lui_list_add_item(list2, "and stupid");
-	lui_obj_t* item_list2_18 = lui_list_add_item(list2, "but it works!");
-	lui_obj_t* item_list2_19 = lui_list_add_item(list2, "bla bla bla");
-	lui_obj_t* item_list2_20 = lui_list_add_item(list2, "More bla bla bla");
-	lui_obj_t* item_list2_21 = lui_list_add_item(list2, "Enddddddddddd");
-	lui_list_prepare(list2);
-	lui_object_add_to_parent(list2, g_scene_two);
-	lui_object_set_enable_input(item_list2_3, 0);
 
 	// add a slider
 	slider1 = lui_slider_create();
-	lui_object_add_to_parent(slider1, g_scene_two);
-	lui_object_set_position(slider1, 90, 390);
-	lui_object_set_area(slider1, 270, 20);
+	lui_object_add_to_parent(slider1, g_scene_one);
+	lui_object_set_position(slider1, 250, 390);
+	lui_object_set_area(slider1, 180, 20);
 	lui_slider_set_range(slider1, -100, 100);
 	lui_slider_set_value(slider1, 50);
 	lui_object_set_border_visibility(slider1, 1);
@@ -616,164 +593,145 @@ int main (int argc, char** argv)
 
 	// a label to show its value
 	g_lbl_slider1_val = lui_label_create();
-	lui_object_add_to_parent(g_lbl_slider1_val, g_scene_two);
+	lui_object_add_to_parent(g_lbl_slider1_val, g_scene_one);
 	lui_label_set_text(g_lbl_slider1_val, "50");
-	lui_object_set_position(g_lbl_slider1_val, 370, 390);
-	lui_object_set_area(g_lbl_slider1_val, 100, 20);
+	lui_object_set_position(g_lbl_slider1_val, 440, 390);
+	lui_object_set_area(g_lbl_slider1_val, 40, 20);
 
 	// add second slider
 	slider2 = lui_slider_create();
-	lui_object_add_to_parent(slider2, g_scene_two);
-	lui_object_set_position(slider2, 90, 420);
-	lui_object_set_area(slider2, 270, 20);
+	lui_object_add_to_parent(slider2, g_scene_one);
+	lui_object_set_position(slider2, 250, 420);
+	lui_object_set_area(slider2, 180, 20);
 	lui_slider_set_range(slider2, -100, 100);
 	lui_slider_set_value(slider2, -50);
 	lui_object_set_callback(slider2, slider_event_handler);
 
 	// another label to show second slider's value
 	g_lbl_slider2_val = lui_label_create();
-	lui_object_add_to_parent(g_lbl_slider2_val, g_scene_two);
+	lui_object_add_to_parent(g_lbl_slider2_val, g_scene_one);
 	lui_label_set_text(g_lbl_slider2_val, "-50");
-	lui_object_set_position(g_lbl_slider2_val, 370, 420);
-	lui_object_set_area(g_lbl_slider2_val, 100, 20);
+	lui_object_set_position(g_lbl_slider2_val, 440, 420);
+	lui_object_set_area(g_lbl_slider2_val, 40, 20);
 
 
 	// add a label as heading for checkboxes
 	lui_obj_t* lbl_sport_question = lui_label_create();
-	lui_object_add_to_parent(lbl_sport_question, g_scene_two);
+	lui_object_add_to_parent(lbl_sport_question, g_scene_one);
 	lui_label_set_text(lbl_sport_question, "What sports do you like?");
-	lui_object_set_position(lbl_sport_question, 90, 470);
-	lui_object_set_area(lbl_sport_question, 300, 20);
+	lui_object_set_position(lbl_sport_question, 260, 460);
 
 	lui_obj_t* chkbox_football = lui_checkbox_create();
-	lui_object_set_position(chkbox_football, 90, 495);
-	lui_object_add_to_parent(chkbox_football, g_scene_two);
-
-	lui_obj_t* lbl_football = lui_label_create();
-	lui_object_add_to_parent(lbl_football, g_scene_two);
-	lui_label_set_text(lbl_football, "Football");
-	lui_object_set_position(lbl_football, 130, 495);
-	lui_object_set_area(lbl_football, 300, 20);
+	lui_checkbox_set_label_text(chkbox_football, "  Football");
+	lui_object_set_position(chkbox_football, 260, 495);
+	lui_object_add_to_parent(chkbox_football, g_scene_one);
 
 	lui_obj_t* chkbox_cricket = lui_checkbox_create();
-	lui_object_set_position(chkbox_cricket, 90, 520);
-	lui_object_add_to_parent(chkbox_cricket, g_scene_two);
-
-	lui_obj_t* lbl_cricket = lui_label_create();
-	lui_object_add_to_parent(lbl_cricket, g_scene_two);
-	lui_label_set_text(lbl_cricket, "Cricket");
-	lui_object_set_position(lbl_cricket, 130, 520);
-	lui_object_set_area(lbl_cricket, 300, 20);
+	lui_checkbox_set_label_text(chkbox_cricket, "  Cricket");
+	lui_object_set_position(chkbox_cricket, 260, 520);
+	lui_object_add_to_parent(chkbox_cricket, g_scene_one);
 
 	lui_obj_t* chkbox_hockey = lui_checkbox_create();
-	lui_object_set_position(chkbox_hockey, 90, 545);
-	lui_object_add_to_parent(chkbox_hockey, g_scene_two);
-
-	lui_obj_t* lbl_hockey = lui_label_create();
-	lui_object_add_to_parent(lbl_hockey, g_scene_two);
-	lui_label_set_text(lbl_hockey, "Hockey");
-	lui_object_set_position(lbl_hockey, 130, 545);
-	lui_object_set_area(lbl_hockey, 300, 20);
+	lui_checkbox_set_label_text(chkbox_hockey, "  Hockey");
+	lui_object_set_position(chkbox_hockey, 260, 545);
+	lui_object_add_to_parent(chkbox_hockey, g_scene_one);
 
 
 	/* Add a btngrid in scene three */
-	btngrid = lui_keyboard_create();
+	keyboard = lui_keyboard_create();
 	//lui_object_set_visibility(btngrid, 0);
-	lui_object_add_to_parent(btngrid, g_scene_one);
-	lui_keyboard_set_font(btngrid, &FONT_montserrat_regular_32);
-	// lui_object_set_area(btngrid, HOR_RES, 300);
-	// lui_btngrid_set_textmap(btngrid, btnm_map);
-	// lui_btngrid_set_propertymap(btngrid, default_kb_ctrl_lc_map);
-	// lui_btngrid_set_font(btngrid, &font_ubuntu_16);
-	// lui_btngrid_set_btn_checkable(btngrid, 0, 1);
-	// lui_btngrid_set_btn_checked(btngrid, 0, 1);
-	// lui_btngrid_set_btn_hidden(btngrid, 1, 1);
-	// lui_object_set_callback(btngrid, test);
-	// lui_object_set_visibility(btngrid, 1);
-	// lui_btngrid_set_btn_margin(btngrid, 3, 6);
-	// lui_btngrid_set_extra_colors(btngrid, lui_rgb(255, 0, 0), 0xffff, lui_rgb(10, 150, 0));
-	
-	//lui_scene_set_active(g_scene_three);
+	lui_object_add_to_parent(keyboard, g_scene_one);
+	lui_keyboard_set_font(keyboard, &FONT_ubuntu_regular_32);
 
-	
-		lui_obj_t* lbl_txtbox_name = lui_label_create();
-		lui_label_set_text(lbl_txtbox_name, "Your Name:");
-		lui_object_set_position(lbl_txtbox_name, 480, 25);
-		lui_object_add_to_parent(lbl_txtbox_name, g_scene_one);
+	const char* numpad_txt_map[] =
+	{
+		"7", "8", "9", "\n",
+		"4", "5", "6", "\n",
+		"1", "2", "3", "\n",
+		"0", "00", ".", "\n",
+		"+", "-", "=", "\0"
+	};
+	// Property map. Notice how the "=" button has twice the width of "+" and "-".
+	const uint8_t numpad_property_map[] =
+	{
+		1, 1, 1,
+		1, 1, 1,
+		1, 1, 1,
+		1, 1, 1,
+		1, 1, 2
+	};
 
-		lui_obj_t* txtbox_name = lui_textbox_create();
-		lui_object_set_border_visibility(txtbox_name, 1);
-		lui_object_set_callback(txtbox_name, textbox_callback);
-		char name[50];
-		lui_textbox_set_text_buffer(txtbox_name, name, 40);
-		lui_object_add_to_parent(txtbox_name, g_scene_one);
-		lui_object_set_position(txtbox_name, 480, 50);
-		lui_object_set_area(txtbox_name, 720-490, 40);
-	
-
-	
-		lui_obj_t* lbl_txtbox_addr = lui_label_create();
-		lui_label_set_text(lbl_txtbox_addr, "Street Address:");
-		lui_object_set_position(lbl_txtbox_addr, 480, 100);
-		lui_object_add_to_parent(lbl_txtbox_addr, g_scene_one);
-
-		lui_obj_t* txtbox_address = lui_textbox_create();
-		lui_object_set_border_visibility(txtbox_address, 1);
-		lui_object_set_callback(txtbox_address, textbox_callback);
-		char addr[50];
-		lui_textbox_set_text_buffer(txtbox_address, addr, 40);
-		lui_object_add_to_parent(txtbox_address, g_scene_one);
-		lui_object_set_position(txtbox_address, 480, 125);
-		lui_object_set_area(txtbox_address, 720-490, 80);
+	btngrid_numpad = lui_btngrid_create();
+	lui_btngrid_set_font(btngrid_numpad, &FONT_ubuntu_regular_20);
+	lui_object_set_area(btngrid_numpad, 230, 200);
+	lui_object_set_position(btngrid_numpad, 480, 420);
+	lui_btngrid_set_textmap(btngrid_numpad, numpad_txt_map);
+	lui_btngrid_set_propertymap(btngrid_numpad, numpad_property_map);
+	lui_btngrid_set_btn_margin(btngrid_numpad, 6, 6);
+	lui_object_add_to_parent(btngrid_numpad, g_scene_one);
+	// lui_btngrid_set_extra_colors(btngrid_numpad, lui_rgb(255, 0, 0), 0xffff, lui_rgb(10, 150, 0));
 	
 
 	
-		lui_obj_t* lbl_txtbox_age = lui_label_create();
-		lui_label_set_text(lbl_txtbox_age, "Age:");
-		lui_object_set_position(lbl_txtbox_age, 480, 210);
-		lui_object_add_to_parent(lbl_txtbox_age, g_scene_one);
+	lui_obj_t* lbl_txtbox_name = lui_label_create();
+	lui_label_set_text(lbl_txtbox_name, "Your Name:");
+	lui_object_set_position(lbl_txtbox_name, 480, 60);
+	lui_object_add_to_parent(lbl_txtbox_name, g_scene_one);
 
-		lui_obj_t* txtbox_age = lui_textbox_create();
-		lui_object_set_border_visibility(txtbox_age, 1);
-		lui_object_set_callback(txtbox_age, textbox_callback);
-		char age[3];
-		lui_textbox_set_text_buffer(txtbox_age, age, 40);
-		lui_object_add_to_parent(txtbox_age, g_scene_one);
-		lui_object_set_position(txtbox_age, 480, 235);
-		lui_object_set_area(txtbox_age, 720-540, 40);
-	
+	lui_obj_t* txtbox_name = lui_textbox_create();
+	lui_object_set_border_visibility(txtbox_name, 1);
+	lui_object_set_callback(txtbox_name, textbox_callback);
+	char name[50];
+	lui_textbox_set_text_buffer(txtbox_name, name, 40);
+	lui_textbox_insert_string(txtbox_name, "John Doe", 8);
+	lui_object_add_to_parent(txtbox_name, g_scene_one);
+	lui_object_set_position(txtbox_name, 480, 85);
+	lui_object_set_area(txtbox_name, 720-490, 40);
 
-	
-		lui_obj_t* lbl_txtbox_father = lui_label_create();
-		lui_label_set_text(lbl_txtbox_father, "Father's Name:");
-		lui_object_set_position(lbl_txtbox_father, 480, 280);
-		lui_object_add_to_parent(lbl_txtbox_father, g_scene_one);
 
-		lui_obj_t* txtbox_father = lui_textbox_create();
-		lui_object_set_border_visibility(txtbox_father, 1);
-		lui_object_set_callback(txtbox_father, textbox_callback);
-		char father[50];
-		lui_textbox_set_text_buffer(txtbox_father, father, 40);
-		lui_object_add_to_parent(txtbox_father, g_scene_one);
-		lui_object_set_position(txtbox_father, 480, 305);
-		lui_object_set_area(txtbox_father, 720-490, 40);
-	
 
-	
-		lui_obj_t* lbl_txtbox_mother = lui_label_create();
-		lui_label_set_text(lbl_txtbox_mother, "Mother's Name:");
-		lui_object_set_position(lbl_txtbox_mother, 480, 350);
-		lui_object_add_to_parent(lbl_txtbox_mother, g_scene_one);
+	lui_obj_t* lbl_txtbox_addr = lui_label_create();
+	lui_label_set_text(lbl_txtbox_addr, "Street Address:");
+	lui_object_set_position(lbl_txtbox_addr, 480, 135);
+	lui_object_add_to_parent(lbl_txtbox_addr, g_scene_one);
 
-		lui_obj_t* txtbox_mother = lui_textbox_create();
-		lui_object_set_border_visibility(txtbox_mother, 1);
-		lui_object_set_callback(txtbox_mother, textbox_callback);
-		char mother[50];
-		lui_textbox_set_text_buffer(txtbox_mother, mother, 40);
-		lui_object_add_to_parent(txtbox_mother, g_scene_one);
-		lui_object_set_position(txtbox_mother, 480, 375);
-		lui_object_set_area(txtbox_mother, 720-490, 40);
-	
+	lui_obj_t* txtbox_address = lui_textbox_create();
+	lui_object_set_border_visibility(txtbox_address, 1);
+	lui_object_set_callback(txtbox_address, textbox_callback);
+	char addr[50];
+	lui_textbox_set_text_buffer(txtbox_address, addr, 40);
+	lui_textbox_insert_string(txtbox_address, "22/7 Camac Street", 17);
+	lui_object_add_to_parent(txtbox_address, g_scene_one);
+	lui_object_set_position(txtbox_address, 480, 160);
+	lui_object_set_area(txtbox_address, 720-490, 80);
+
+
+
+	lui_obj_t* lbl_txtbox_age = lui_label_create();
+	lui_label_set_text(lbl_txtbox_age, "Age:");
+	lui_object_set_position(lbl_txtbox_age, 480, 245);
+	lui_object_add_to_parent(lbl_txtbox_age, g_scene_one);
+
+	lui_obj_t* txtbox_age = lui_textbox_create();
+	lui_object_set_border_visibility(txtbox_age, 1);
+	lui_object_set_callback(txtbox_age, textbox_callback);
+	char age[3];
+	lui_textbox_set_text_buffer(txtbox_age, age, 40);
+	lui_textbox_insert_string(txtbox_age, "25", 2);
+	lui_object_add_to_parent(txtbox_age, g_scene_one);
+	lui_object_set_position(txtbox_age, 480, 270);
+	lui_object_set_area(txtbox_age, 720-540, 40);
+
+
+	lui_obj_t* txtbox_numpad = lui_textbox_create();
+	lui_object_set_border_visibility(txtbox_numpad, 1);
+	lui_object_set_callback(txtbox_numpad, textbox_callback);
+	char numpad_number[50];
+	lui_textbox_set_text_buffer(txtbox_numpad, numpad_number, 40);
+	lui_object_add_to_parent(txtbox_numpad, g_scene_one);
+	lui_object_set_position(txtbox_numpad, 480, 375);
+	lui_object_set_area(txtbox_numpad, 720-490, 40);
+
 	/*-----------------------------------------------------------------------------------
 	 -		Glut related functions for drawing and input handling						-
 	 -----------------------------------------------------------------------------------*/

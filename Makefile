@@ -26,11 +26,14 @@ BINDIR		 =  bin/
 
 #------------ [C/CPP SOURCE FILES] ----------------------------------
 # User source files (c/cpp)
-SRCS   	 	 =  small_example.c
+SRCS   	 	 =  big_example.c
 # LameUI source file
 SRCS	 	+=  lame_ui.c
 # Extra fonts (in LameUI/fonts directory)
 SRCS		+=  montserrat_regular_32.c
+SRCS		+=  montserrat_regular_48.c
+SRCS		+=  ubuntu_regular_32.c
+SRCS		+=  ubuntu_regular_20.c
 #--------------------------------------------------------------------
 
 #------------ [COMPILED OBJECT FILES] -------------------------------

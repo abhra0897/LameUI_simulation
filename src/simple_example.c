@@ -10,7 +10,6 @@
 #include "../LameUI/lame_ui.h"
 #include <unistd.h>
 #include "fonts/montserrat_regular_32.h"
-#include "fonts/ubuntu_regular_17.h"
 
 // Set display resolution
 // OpenGL will use it to create a window
