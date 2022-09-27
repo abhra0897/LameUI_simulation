@@ -445,6 +445,8 @@ int main (int argc, char** argv)
 	// group all the switches and their labels
 	lui_obj_t* panel_group_switches =  lui_panel_create();
 	lui_object_set_position(panel_group_switches, 5, 340);
+	lui_object_set_layer(panel_group_switches, 10);
+	// lui_object_set_position(panel_group_switches, 35, 340);
 	lui_object_set_area(panel_group_switches, 240, 120);
 	lui_object_add_to_parent(panel_group_switches, g_scene_one);
 
@@ -535,6 +537,7 @@ int main (int argc, char** argv)
 	lui_object_set_position(list1, 250, 340);
 	lui_object_set_area(list1, 215, 250);
 	lui_object_set_border_visibility(list1, 1);
+	lui_list_set_text_align(list1, ALIGN_CENTER);
 	lui_obj_t* item1 = lui_list_add_item(list1, "Shut Down");
 	lui_object_set_callback(item1, count_and_reset_event_handler);
 	lui_obj_t* item2 = lui_list_add_item(list1, LUI_ICON_RELAOD " Restart " LUI_ICON_POWER);

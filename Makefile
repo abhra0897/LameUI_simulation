@@ -26,7 +26,7 @@ BINDIR		 =  bin/
 
 #------------ [C/CPP SOURCE FILES] ----------------------------------
 # User source files (c/cpp)
-SRCS   	 	 =  main.c
+SRCS   	 	 =  small_example.c
 # LameUI source file
 SRCS	 	+=  lame_ui.c
 # Extra fonts (in LameUI/fonts directory)

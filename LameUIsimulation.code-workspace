@@ -15,7 +15,8 @@
 			"typeinfo": "c",
 			"bitmap_typedefs.h": "c",
 			"montserrat_regular_32.h": "c",
-			"ubuntu_regular_17.h": "c"
+			"ubuntu_regular_17.h": "c",
+			"main_old": "c"
 		},
 		"todo-tree.tree.scanMode": "workspace only",
 		"todo-tree.tree.showCountsInTree": true
