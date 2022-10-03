@@ -18,7 +18,21 @@
 			"ubuntu_regular_17.h": "c",
 			"main_old": "c",
 			"montserrat_regular_48.h": "c",
-			"ubuntu_regular_32.h": "c"
+			"ubuntu_regular_32.h": "c",
+			"optional": "c",
+			"istream": "c",
+			"ostream": "c",
+			"ratio": "c",
+			"system_error": "c",
+			"array": "c",
+			"functional": "c",
+			"tuple": "c",
+			"type_traits": "c",
+			"utility": "c",
+			"variant": "c",
+			"*.tcc": "c",
+			"limits": "c",
+			"stdexcept": "c"
 		},
 		"todo-tree.tree.scanMode": "workspace only",
 		"todo-tree.tree.showCountsInTree": true

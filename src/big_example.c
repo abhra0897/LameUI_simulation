@@ -598,21 +598,16 @@ int main (int argc, char** argv)
 	lui_object_set_position(g_lbl_slider1_val, 440, 390);
 	lui_object_set_area(g_lbl_slider1_val, 40, 20);
 
-	// add second slider
+	// add progress bar
 	slider2 = lui_slider_create();
 	lui_object_add_to_parent(slider2, g_scene_one);
+	lui_slider_set_progress_bar(slider2, 1);
+	lui_slider_set_show_value(slider2, 1);
+	lui_slider_set_text(slider2, " % progress");
 	lui_object_set_position(slider2, 250, 420);
 	lui_object_set_area(slider2, 180, 20);
-	lui_slider_set_range(slider2, -100, 100);
-	lui_slider_set_value(slider2, -50);
-	lui_object_set_callback(slider2, slider_event_handler);
-
-	// another label to show second slider's value
-	g_lbl_slider2_val = lui_label_create();
-	lui_object_add_to_parent(g_lbl_slider2_val, g_scene_one);
-	lui_label_set_text(g_lbl_slider2_val, "-50");
-	lui_object_set_position(g_lbl_slider2_val, 440, 420);
-	lui_object_set_area(g_lbl_slider2_val, 40, 20);
+	lui_slider_set_range(slider2, 0, 100);
+	lui_slider_set_value(slider2, 48);
 
 
 	// add a label as heading for checkboxes
@@ -667,7 +662,7 @@ int main (int argc, char** argv)
 	lui_object_set_position(btngrid_numpad, 480, 420);
 	lui_btngrid_set_textmap(btngrid_numpad, numpad_txt_map);
 	lui_btngrid_set_propertymap(btngrid_numpad, numpad_property_map);
-	lui_btngrid_set_btn_margin(btngrid_numpad, 6, 6);
+	lui_btngrid_set_btn_margin(btngrid_numpad, 5, 5);
 	lui_object_add_to_parent(btngrid_numpad, g_scene_one);
 	// lui_btngrid_set_extra_colors(btngrid_numpad, lui_rgb(255, 0, 0), 0xffff, lui_rgb(10, 150, 0));
 	
