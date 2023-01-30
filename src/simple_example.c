@@ -10,6 +10,9 @@
 #include "../LameUI/lame_ui.h"
 #include <unistd.h>
 #include "fonts/montserrat_regular_32.h"
+#include "forest_653448.h"
+#include "send_button.h"
+#include "sent_button.h"
 
 // Set display resolution
 // OpenGL will use it to create a window
@@ -196,12 +199,14 @@ int main (int argc, char** argv)
 	//create and add scenes
 	scene_1 = lui_scene_create();
 	lui_scene_set_active(scene_1);
+	lui_scene_set_bitmap_image(scene_1, &BITMAP_forest_653448, NULL);
 
     // add a button to go to next scene (g_scene_two)
 	label_1 = lui_label_create();
 	lui_object_add_to_parent(label_1, scene_1);
 	lui_object_set_position(label_1, 5, 50);
 	lui_label_set_text(label_1, "This is Label 1. Below is Button 1");
+	// lui_label_set_bg_transparent(label_1, 1);
 
 	// add a button to go to next scene (g_scene_two)
 	button_1 = lui_button_create();
@@ -209,9 +214,13 @@ int main (int argc, char** argv)
 	lui_object_set_area(button_1, 110, 40);
 	lui_object_set_position(button_1, 65, 100);
 	lui_button_set_label_text(button_1, "Button 1");
-	//lui_object_set_callback(g_btn_nxt_scn, scn_change_event_handler);
 
-  
+	lui_obj_t* img_button = lui_button_create();
+	lui_object_add_to_parent(img_button, scene_1);
+	lui_object_set_area(img_button, 160, 49);
+	lui_object_set_position(img_button, 40, 160);
+	lui_button_set_bitmap_image(img_button, &BITMAP_send_button, &BITMAP_sent_button, NULL);
+
 	/*-----------------------------------------------------------------------------------
 	 -		Glut related functions for drawing and input handling						-
 	 -----------------------------------------------------------------------------------*/
@@ -225,12 +234,20 @@ int main (int argc, char** argv)
 	return 0;
 }
 
+lui_area_t crop = {
+	.x = 3,
+	.y = 33,
+	.w = 150,
+	.h = 200
+};
 // This function is called back by glut when drawing is needed
 // Here we call our render function
 void myDisplay()
 {
 	// the main update function to process input and display output
 	lui_update();
+	// lui_gfx_bitmap_draw(&BITMAP_forest_653448, 0, 0, &crop);
+	// lui_gfx_bitmap_draw(&BITMAP_grad, 0, 0, NULL);
 
 	
 	// Flush drawing commands

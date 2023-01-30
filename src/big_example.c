@@ -12,6 +12,9 @@
 #include "fonts/montserrat_regular_48.h"
 #include "fonts/ubuntu_regular_32.h"
 #include "fonts/ubuntu_regular_20.h"
+#include "forest_653448.h"
+#include "grad.h"
+#include "grad_color1_bg.h"
 
 // Set display resolution
 // OpenGL will use it to create a window
@@ -260,7 +263,7 @@ void list1_cb(lui_obj_t* obj)
 	uint8_t event = lui_object_get_event(obj);
 	if (event == LUI_EVENT_PRESSED)
 	{
-		char* txt = lui_list_get_item_text(obj, lui_list_get_selected_item_index(obj));
+		const char* txt = lui_list_get_item_text(obj, lui_list_get_selected_item_index(obj));
 		if (txt != NULL)
 			fprintf(stderr, "Selected: %s\n", txt);
 	}
@@ -374,6 +377,13 @@ int main (int argc, char** argv)
 	//----------------------------------------------------------
 	//create and add scenes
 	g_scene_one = lui_scene_create();
+	lui_area_t scn1_bmp_crop = {
+		.x = 0,
+		.y = 0,
+		.w = HOR_RES,
+		.h = VERT_RES
+	};
+	lui_scene_set_bitmap_image(g_scene_one, &BITMAP_grad_color1_bg, &scn1_bmp_crop);
 	//lui_object_set_bg_color(0, g_scene_one);
 	//lui_scene_set_font(g_scene_one, &font_microsoft_16);
 	//g_scene_one = lui_scene_destroy(g_scene_one);	// For destroying, assigning the return value is mandatory
@@ -397,7 +407,7 @@ int main (int argc, char** argv)
 	lui_object_set_area(lbl_heading, HOR_RES, lui_gfx_get_font_height(&FONT_ubuntu_regular_32));
 	lui_label_set_font(lbl_heading, &FONT_ubuntu_regular_32);
 	lui_object_add_to_parent(lbl_heading, g_scene_one);
-	lui_label_set_text(lbl_heading, "                          LameUI            Demo            Application                          ");
+	lui_label_set_text(lbl_heading, "LameUI Demo Application");
 	lui_object_set_position(lbl_heading, 0, 1);
 	//lui_object_set_area(lbl_heading, HOR_RES, 20);
 	lui_object_set_bg_color(lbl_heading, LUI_STYLE_BUTTON_BG_COLOR);
@@ -512,6 +522,7 @@ int main (int argc, char** argv)
 	lui_object_set_position(lbl_long_text, 5, 470);
 	lui_object_set_area(lbl_long_text, 240, 120);
 	lui_object_set_border_visibility(lbl_long_text, 1);
+	lui_label_set_bg_transparent(lbl_long_text, 1);
 
 	// -------------------------------------------
 	// create popup group
@@ -597,6 +608,7 @@ int main (int argc, char** argv)
 	lui_label_set_text(g_lbl_slider1_val, "50");
 	lui_object_set_position(g_lbl_slider1_val, 440, 390);
 	lui_object_set_area(g_lbl_slider1_val, 40, 20);
+	lui_label_set_bg_transparent(g_lbl_slider1_val, 1);
 
 	// add progress bar
 	slider2 = lui_slider_create();
