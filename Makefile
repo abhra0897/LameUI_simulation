@@ -26,7 +26,13 @@ BINDIR		 =  bin/
 
 #------------ [C/CPP SOURCE FILES] ----------------------------------
 # User source files (c/cpp)
-SRCS   	 	 =  widgets_test.c
+SRCS   	 	 =  simple_example.c
+SRCS		+=  forest_653448.c
+SRCS		+=  grad.c
+SRCS		+=  grad_color1_bg.c
+SRCS		+=  send_button.c
+SRCS		+=  sent_button.c
+
 # LameUI source file
 SRCS	 	+=  lame_ui.c
 # Extra fonts (in LameUI/fonts directory)
@@ -44,6 +50,7 @@ OBJ			 =  $(SRCS:.c=.o)
 #------------ [INCLUDE DIRECTORIES] ---------------------------------
 # Includes for user files(headers)
 INCLS		 =  -Iinc
+INCLS		+=  -Isrc
 # Include for lameui files
 INCLS 		+=  -ILameUI/
 # Includes for Font and bitmap related files

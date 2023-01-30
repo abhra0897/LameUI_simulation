@@ -32,7 +32,9 @@
 			"variant": "c",
 			"*.tcc": "c",
 			"limits": "c",
-			"stdexcept": "c"
+			"stdexcept": "c",
+			"forest_653448.h": "c",
+			"send_button.h": "c"
 		},
 		"todo-tree.tree.scanMode": "workspace only",
 		"todo-tree.tree.showCountsInTree": true
