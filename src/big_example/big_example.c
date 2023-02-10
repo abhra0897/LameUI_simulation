@@ -4,15 +4,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <GL/glut.h>
-#include <math.h>
-#include <inttypes.h>
-#include "../LameUI/lame_ui.h"
 #include <unistd.h>
+#include <stdint.h>
+#include <math.h>
+#include <GL/glut.h>
+
+#include "lame_ui.h"
 #include "fonts/montserrat_regular_48.h"
 #include "fonts/ubuntu_regular_32.h"
 #include "fonts/ubuntu_regular_20.h"
-#include "forest_653448.h"
 #include "grad.h"
 #include "grad_color1_bg.h"
 
@@ -72,11 +72,11 @@ void gl_init();
 // End opengl function -------------------------------------------------------------
 
 // glut callback functions. These are not LameUI specific --------------------------
-void myDisplay();
-void myIdle();
-void myMouseMove(int x, int y);
-void myMousePressMove(int x, int y);
-void myMousePress(int button, int state, int x, int y);
+void glutDisplay();
+void glutIdle();
+void glutMouseMove(int x, int y);
+void glutMousePressMove(int x, int y);
+void glutMousePress(int button, int state, int x, int y);
 // End glut callbacks ---------------------------------------------------------------
 
 // user functions
@@ -377,13 +377,7 @@ int main (int argc, char** argv)
 	//----------------------------------------------------------
 	//create and add scenes
 	g_scene_one = lui_scene_create();
-	lui_area_t scn1_bmp_crop = {
-		.x = 0,
-		.y = 0,
-		.w = HOR_RES,
-		.h = VERT_RES
-	};
-	lui_scene_set_bitmap_image(g_scene_one, &BITMAP_grad_color1_bg, &scn1_bmp_crop);
+	lui_scene_set_bitmap_image(g_scene_one, &BITMAP_grad_color1_bg);
 	//lui_object_set_bg_color(0, g_scene_one);
 	//lui_scene_set_font(g_scene_one, &font_microsoft_16);
 	//g_scene_one = lui_scene_destroy(g_scene_one);	// For destroying, assigning the return value is mandatory
@@ -739,14 +733,21 @@ int main (int argc, char** argv)
 	lui_object_set_position(txtbox_numpad, 480, 375);
 	lui_object_set_area(txtbox_numpad, 720-490, 40);
 
+	/* Add another slider to scene 2 */
+	lui_obj_t* slider_vert = lui_slider_create();
+	lui_object_set_area(slider_vert, 30, 100);
+	lui_object_add_to_parent(slider_vert, g_scene_two);
+	lui_object_set_position(slider_vert, 50, 200);
+	// lui_slider_set_value(slider_vert, 33);
+
 	/*-----------------------------------------------------------------------------------
 	 -		Glut related functions for drawing and input handling						-
 	 -----------------------------------------------------------------------------------*/
-	glutMouseFunc(myMousePress);		// to handle mouse press while not being moved
-	glutMotionFunc(myMousePressMove);	// to handle mouse movement while being clicked
-	glutPassiveMotionFunc(myMouseMove);	// to handle mouse movement while NOT being pressed
-	glutIdleFunc(myIdle);
-	glutDisplayFunc(myDisplay);
+	glutMouseFunc(glutMousePress);		// to handle mouse press while not being moved
+	glutMotionFunc(glutMousePressMove);	// to handle mouse movement while being clicked
+	glutPassiveMotionFunc(glutMouseMove);	// to handle mouse movement while NOT being pressed
+	glutIdleFunc(glutIdle);
+	glutDisplayFunc(glutDisplay);
 	glutMainLoop();
 
 	return 0;
@@ -754,7 +755,7 @@ int main (int argc, char** argv)
 
 // This function is called back by glut when drawing is needed
 // Here we call our render function
-void myDisplay()
+void glutDisplay()
 {
 	// the main update function to process input and display output
 	lui_update();
@@ -766,7 +767,7 @@ void myDisplay()
 
 // This function is called back by glut when mouse is moved passively
 // We're setting the global input variable's value here
-void myMouseMove(int x, int y)
+void glutMouseMove(int x, int y)
 {
 	//printf ("[DEBUG] void myMouse( int x: %d, int y: %d )\n", x, y);			//send all output to screen
 
@@ -778,7 +779,7 @@ void myMouseMove(int x, int y)
 
 // This function is called back by glut when mouse is moved while being pressed
 // We're setting the global input variable's value here
-void myMousePressMove(int x, int y)
+void glutMousePressMove(int x, int y)
 {
 	g_input.x = x;
 	g_input.y = y;
@@ -786,7 +787,7 @@ void myMousePressMove(int x, int y)
 
 // This function is called back by glut when mouse is pressed
 // This is to simulates touch input
-void myMousePress(int button, int state, int x, int y)
+void glutMousePress(int button, int state, int x, int y)
 {
 	g_input.is_pressed = 0;
 	g_input.x = -1;
@@ -804,7 +805,7 @@ void myMousePress(int button, int state, int x, int y)
 
 // This function is called back by glut during idle time (when not drawing)
 // Here we wait a bit and force a redisplay function
-void myIdle()
+void glutIdle()
 {
 	sleep(.015); //wait 15ms to save CPU
 	glutPostRedisplay();

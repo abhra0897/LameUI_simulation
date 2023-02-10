@@ -1,7 +1,7 @@
 #####################################################################
 # Created by Avra Mitra											    #
 # Created on Apr 30, 2020										    #
-# Last modified on May 2, 2020										#
+# Last modified on April 24, 2022										#
 #####################################################################
 
 # Project name
@@ -15,7 +15,9 @@ TARGET=Sim
 
 #------------ [SOURCE DIRECTORIES] -----------------------------------
 # User source directory
-SRCDIR	 =  src/
+SRCDIR_USER	 	 =  src/
+# LameUI source directory
+SRCDIR_LAMEUI	 =  LameUI/
 # Objects directory
 OBJDIR		 =  obj/
 # Target directory
@@ -24,17 +26,35 @@ BINDIR		 =  bin/
 
 #------------ [C/CPP SOURCE FILES] ----------------------------------
 # User source files (c/cpp)
-SRCS   	 =  main.c
+SRCS   	 	 =  simple_example.c
+SRCS		+=  forest_653448.c
+SRCS		+=  grad.c
+SRCS		+=  grad_color1_bg.c
+SRCS		+=  send_button.c
+SRCS		+=  sent_button.c
+
+# LameUI source file
+SRCS	 	+=  lame_ui.c
+# Extra fonts (in LameUI/fonts directory)
+SRCS		+=  montserrat_regular_32.c
+SRCS		+=  montserrat_regular_48.c
+SRCS		+=  ubuntu_regular_32.c
+SRCS		+=  ubuntu_regular_20.c
 #--------------------------------------------------------------------
 
 #------------ [COMPILED OBJECT FILES] -------------------------------
-# Object file names (source_name.o)
-OBJ			 =  $(SRCS:.c=.o)	
+# Object file names for user source files (source_name.o)
+OBJ			 =  $(SRCS:.c=.o)
 #--------------------------------------------------------------------
 
 #------------ [INCLUDE DIRECTORIES] ---------------------------------
-# Includes (headers)
+# Includes for user files(headers)
 INCLS		 =  -Iinc
+INCLS		+=  -Isrc
+# Include for lameui files
+INCLS 		+=  -ILameUI/
+# Includes for Font and bitmap related files
+INCLS 		+=  -ILameUI/fonts/
 #--------------------------------------------------------------------
 
 #------------ [USED LIBRARIES] --------------------------------------
@@ -44,11 +64,7 @@ LIBS  		+=  -lGLU
 LIBS  		+=  -lglut
 LIBS  		+=  -lm
 
-# LameUI library (liblameui.a)
-LIBS		+=  -llameui
-
-# Library path (of liblameui.a)
-LIBPATH		 =  -LLameUI
+LIBPATH		 =  #-Llibs
 #--------------------------------------------------------------------
 
 #------------ [DON'T EDIT BELOW PART] -------------------------------
@@ -62,7 +78,7 @@ TARGET_MAIN	 =  $(addprefix $(BINDIR),$(TARGET))
 ######################################################################
 
 # Cross compiler information
-CC			 =  gcc
+CC			 =  gcc #tcc
 DEBUG		 =  gdb
 
 # Compiler flags used to create .o files from .c/cpp files
@@ -75,10 +91,16 @@ CFLAGS  	+=  -Wall -Wextra -Warray-bounds
 #                         SETUP TARGETS                              #
 ######################################################################
 
+
 # Rule to make all
 .PHONY: all
-all: make_lameui $(TARGET_MAIN)
+all: $(TARGET_MAIN)
 
+
+# Rule to make all and then run it
+.PHONY: run
+run: $(TARGET_MAIN)
+	$(TARGET_MAIN)
 
 
 # Rule to build lameui library using its own makefile
@@ -90,30 +112,40 @@ make_lameui:
 
 # Rule to clean user application (.o and executable) and LameUI (.a, .o)
 .PHONY: clean
-clean: 
-		@echo [Cleaning LameUI library...]
-		cd LameUI && $(MAKE) clean
+clean:
 		@echo [Cleaning user application...]
 		rm -f $(OBJ_MAIN) $(TARGET_MAIN)
 
 
+# NOTE: If both user application and lameUI (or other lib) has files with same name, wrong file may be compiled in wrong place
+#       In such case, instead of using pattern rule, use exact file name
 
-# Rule to make object file by compiling source file
-$(OBJDIR)%.o: $(SRCDIR)%.c
-		@echo [Compiling...]
+# Rule to make object files of user c/cpp (in src folder) by compiling source file
+$(OBJDIR)%.o: $(SRCDIR_USER)%.c
+		@echo [Compiling user code...]
 		$(CC) -c -o $@ $< $(INCLS) $(CFLAGS)
-		
+
+
+# Rule to make object files of lameui
+$(OBJDIR)%.o: $(SRCDIR_LAMEUI)%.c  
+		@echo [Compiling LameUI...]
+		$(CC) -c -o $@ $< $(INCLS) $(CFLAGS)
+
+# Rule to make object files of lameui fonts (font c files must be in LameUI/fonts/)
+$(OBJDIR)%.o: $(SRCDIR_LAMEUI)/fonts/%.c
+		@echo [Compiling LameUI Fonts...]
+		$(CC) -c -o $@ $< $(INCLS) $(CFLAGS)
 
 
 # Rule to make target executable by linking object files and libraries
 $(TARGET_MAIN): $(OBJ_MAIN)
-		@echo [Linking...]
-		$(CC) -o $(TARGET_MAIN) $(OBJ_MAIN) $(LIBPATH) $(LIBS)
+		@echo [Linking all objects...]
+		$(CC) -o $(TARGET_MAIN) $^ $(LIBPATH) $(LIBS)
 
-			
+
 
 # Rule to fireup gdb for debugging the executable binary
-.PHONY: debug				
+.PHONY: debug
 debug:
 		$(DEBUG) $(TARGET_MAIN)
 
