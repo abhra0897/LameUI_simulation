@@ -9,12 +9,12 @@
 #include <math.h>
 #include <GL/glut.h>
 
-#include "lame_ui.h"
-#include "fonts/montserrat_regular_48.h"
-#include "fonts/ubuntu_regular_32.h"
-#include "fonts/ubuntu_regular_20.h"
-#include "grad.h"
-#include "grad_color1_bg.h"
+#include "../../LameUI/lame_ui.h"	/* No need to set full paths like this. It's just to visualize */
+#include "../../LameUI/fonts/montserrat_regular_48.h"
+#include "../../LameUI/fonts/ubuntu_regular_32.h"
+#include "../../LameUI/fonts/ubuntu_regular_20.h"
+#include "res/grad.h"
+#include "res/grad_color1_bg.h"
 
 // Set display resolution
 // OpenGL will use it to create a window

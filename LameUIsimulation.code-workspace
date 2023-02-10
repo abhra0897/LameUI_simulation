@@ -35,7 +35,8 @@
 			"stdexcept": "c",
 			"forest_653448.h": "c",
 			"send_button.h": "c",
-			"compare": "c"
+			"compare": "c",
+			"ubuntu_regular_20.h": "c"
 		},
 		"todo-tree.tree.scanMode": "workspace only",
 		"todo-tree.tree.showCountsInTree": true

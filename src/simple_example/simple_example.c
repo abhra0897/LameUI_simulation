@@ -9,11 +9,11 @@
 #include <stdint.h>
 #include <GL/glut.h>
 
-#include "lame_ui.h"
-#include "fonts/montserrat_regular_32.h"
-#include "forest_653448.h"
-#include "send_button.h"
-#include "sent_button.h"
+#include "../../LameUI/lame_ui.h" /* No need to set full paths like this. It's just to visualize */
+#include "../../LameUI/fonts/montserrat_regular_32.h"
+#include "res/forest_653448.h"
+#include "res/send_button.h"
+#include "res/sent_button.h"
 
 #define UNUSED(x) (void)(x)
 

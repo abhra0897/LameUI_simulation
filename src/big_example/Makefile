@@ -1,13 +1,13 @@
 #####################################################################
 # Created by Avra Mitra											    #
 # Created on Apr 30, 2020										    #
-# Last modified on April 24, 2022										#
+# Last modified on April 24, 2022									#
 #####################################################################
 
 # Project name
-PROJ_NAME=Sim_LameUI
+PROJ_NAME=LameUI_simulator
 # Executable name
-TARGET=Sim
+TARGET=big_example
 
 ######################################################################
 #                         SETUP SOURCES                              #
@@ -15,23 +15,21 @@ TARGET=Sim
 
 #------------ [SOURCE DIRECTORIES] -----------------------------------
 # User source directory
-SRCDIR_USER	 	 =  src/
+SRCDIR_USER	 	 =  ./
+RESDIR_USER		 =	./res/
 # LameUI source directory
-SRCDIR_LAMEUI	 =  LameUI/
+SRCDIR_LAMEUI	 =  ../../LameUI/
 # Objects directory
-OBJDIR		 =  obj/
+OBJDIR		 =  ../../obj/
 # Target directory
-BINDIR		 =  bin/
+BINDIR		 =  ../../bin/
 #--------------------------------------------------------------------
 
 #------------ [C/CPP SOURCE FILES] ----------------------------------
 # User source files (c/cpp)
-SRCS   	 	 =  simple_example.c
-SRCS		+=  forest_653448.c
+SRCS   	 	 =  big_example.c
 SRCS		+=  grad.c
 SRCS		+=  grad_color1_bg.c
-SRCS		+=  send_button.c
-SRCS		+=  sent_button.c
 
 # LameUI source file
 SRCS	 	+=  lame_ui.c
@@ -49,12 +47,12 @@ OBJ			 =  $(SRCS:.c=.o)
 
 #------------ [INCLUDE DIRECTORIES] ---------------------------------
 # Includes for user files(headers)
-INCLS		 =  -Iinc
-INCLS		+=  -Isrc
+INCLS		 =  -I.
+INCLS		+=  -Ires
 # Include for lameui files
-INCLS 		+=  -ILameUI/
+INCLS 		+=  -I../../LameUI/
 # Includes for Font and bitmap related files
-INCLS 		+=  -ILameUI/fonts/
+INCLS 		+=  -I../../LameUI/fonts/
 #--------------------------------------------------------------------
 
 #------------ [USED LIBRARIES] --------------------------------------
@@ -103,13 +101,6 @@ run: $(TARGET_MAIN)
 	$(TARGET_MAIN)
 
 
-# Rule to build lameui library using its own makefile
-.PHONY: make_lameui
-make_lameui:
-		cd LameUI && $(MAKE) all
-
-
-
 # Rule to clean user application (.o and executable) and LameUI (.a, .o)
 .PHONY: clean
 clean:
@@ -122,7 +113,10 @@ clean:
 
 # Rule to make object files of user c/cpp (in src folder) by compiling source file
 $(OBJDIR)%.o: $(SRCDIR_USER)%.c
-		@echo [Compiling user code...]
+		@echo [Compiling user code _src_...]
+		$(CC) -c -o $@ $< $(INCLS) $(CFLAGS)
+$(OBJDIR)%.o: $(RESDIR_USER)%.c
+		@echo [Compiling user code _res_...]
 		$(CC) -c -o $@ $< $(INCLS) $(CFLAGS)
 
 
