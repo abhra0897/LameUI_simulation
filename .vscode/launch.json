@@ -11,7 +11,7 @@
             "name": "gcc - make and debug active file",
             "type": "cppdbg",
             "request": "launch",
-            "program": "/home/rik/Works/C_CPP/LameUIsimulation/bin/Sim",
+            "program": "/home/rik/Works/C_CPP/LameUIsimulation/bin/music_player",
             "args": [],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",

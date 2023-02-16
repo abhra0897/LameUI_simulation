@@ -57,7 +57,7 @@ struct song_info song_list[] = {
 };
 
 uint8_t songs_count =  sizeof(song_list) / sizeof(song_list[0]);
-struct song_info current_song;
+struct song_info* current_song;
 uint8_t current_song_index = 0;
 uint16_t current_song_timer = 120;
 uint8_t is_playing = 0;
@@ -86,7 +86,7 @@ lui_obj_t* lbl_about2;
 
 lui_obj_t* btn_playlst;
 lui_obj_t* btn_about;
-lui_obj_t* btn_hrt;
+lui_obj_t* btn_fav;
 lui_obj_t* btn_play;
 lui_obj_t* btn_prev;
 lui_obj_t* btn_next;
@@ -120,6 +120,8 @@ void playlst_btn_cb(lui_obj_t* obj);
 void about_btn_cb(lui_obj_t* obj);
 void popup_cls_btn_cb(lui_obj_t* obj);
 void song_list_cb(lui_obj_t* obj);
+void fav_btn_cb(lui_obj_t* obj);
+void slider_change_cb(lui_obj_t* obj);
 /* End LameUI callbacks ------------------------------------------------------------ */
 
 /* opengl functions. Not specific to LameUI ---------------------------------------- */
@@ -171,13 +173,13 @@ int main (int argc, char** argv)
 
 	/* ---------------------------------------------------------- */
 	/* creating display driver variable for lame_ui */
-	lui_dispdrv_t *my_display_driver = lui_dispdrv_create();
+	lui_dispdrv_t* my_display_driver = lui_dispdrv_create();
 	lui_dispdrv_register(my_display_driver);
 	lui_dispdrv_set_resolution(my_display_driver, HOR_RES, VERT_RES);
 	lui_dispdrv_set_draw_pixels_area_cb(my_display_driver, lameui_draw_pixels_cb);
 	lui_dispdrv_set_render_complete_cb(my_display_driver, lameui_render_cmplt_cb);
 
-	lui_touch_input_dev_t *my_input_device = lui_touch_inputdev_create();
+	lui_touch_input_dev_t* my_input_device = lui_touch_inputdev_create();
 	lui_touch_inputdev_register(my_input_device);
 	lui_touch_inputdev_set_read_input_cb(my_input_device, lameui_input_read_cb);	
 
@@ -191,15 +193,15 @@ int main (int argc, char** argv)
     // lui_scene_set_bitmap_image(scn_second, &BITMAP_background);
 	// lui_scene_set_active(scn_second);
 
+    current_song = &song_list[current_song_index];
     /* Labels */
     {
-        current_song = song_list[current_song_index];
 
         lbl_song = lui_label_create();
         lui_object_add_to_parent(lbl_song, scn_main);
         uint16_t x = 125, y = 43;
         lui_object_set_position(lbl_song, x, y);
-        lui_label_set_text(lbl_song, current_song.title);
+        lui_label_set_text(lbl_song, current_song->title);
         lui_label_set_font(lbl_song, &FONT_ubuntu_bold_20);
         lui_label_set_text_color(lbl_song, lui_rgb(0, 0, 0));
         lui_object_set_width(lbl_song, HOR_RES-x);
@@ -208,7 +210,7 @@ int main (int argc, char** argv)
         lui_object_add_to_parent(lbl_artist, scn_main);
         y = 70;
         lui_object_set_position(lbl_artist, x, y);
-        lui_label_set_text(lbl_artist, current_song.artist);
+        lui_label_set_text(lbl_artist, current_song->artist);
         lui_label_set_text_color(lbl_artist, lui_rgb(0, 0, 0));
         lui_object_set_width(lbl_album, HOR_RES-x);
 
@@ -216,7 +218,7 @@ int main (int argc, char** argv)
         lui_object_add_to_parent(lbl_album, scn_main);
         y = 90;
         lui_object_set_position(lbl_album, x, y);
-        lui_label_set_text(lbl_album, current_song.album);
+        lui_label_set_text(lbl_album, current_song->album);
         lui_label_set_text_color(lbl_album, lui_rgb(0, 0, 0));
         lui_object_set_width(lbl_album, HOR_RES-x);
     }
@@ -263,15 +265,16 @@ int main (int argc, char** argv)
         lui_button_set_bg_transparent(btn_playlst, 1);
         lui_object_set_callback(btn_playlst, playlst_btn_cb);
 
-        btn_hrt = lui_button_create();
-        lui_object_add_to_parent(btn_hrt, scn_main);
-        lui_object_set_position(btn_hrt, 125, 113);
-        lui_object_set_area(btn_hrt, 28, 28);
-        lui_button_set_bitmap_images(btn_hrt, &BITMAP_heart_line, &BITMAP_heart_filled);
-        lui_button_set_bitmap_images_mono_palette(btn_hrt, &heart_idle_pal, &hear_press_pal);
-        lui_button_set_checkable(btn_hrt, 1);
-        lui_button_set_value(btn_hrt, current_song.is_fav);
-        lui_button_set_bg_transparent(btn_hrt, 1);
+        btn_fav = lui_button_create();
+        lui_object_add_to_parent(btn_fav, scn_main);
+        lui_object_set_position(btn_fav, 125, 113);
+        lui_object_set_area(btn_fav, 28, 28);
+        lui_button_set_bitmap_images(btn_fav, &BITMAP_heart_line, &BITMAP_heart_filled);
+        lui_button_set_bitmap_images_mono_palette(btn_fav, &heart_idle_pal, &hear_press_pal);
+        lui_button_set_checkable(btn_fav, 1);
+        lui_button_set_value(btn_fav, current_song->is_fav);
+        lui_button_set_bg_transparent(btn_fav, 1);
+        lui_object_set_callback(btn_fav, fav_btn_cb);
 
         btn_play = lui_button_create();
         lui_object_add_to_parent(btn_play, scn_main);
@@ -374,6 +377,7 @@ int main (int argc, char** argv)
         }
     }
 
+    /* Slider object */
     {
         sldr_prog = lui_slider_create();
         lui_object_add_to_parent(sldr_prog, scn_main);
@@ -383,8 +387,9 @@ int main (int argc, char** argv)
         lui_object_set_border_visibility(sldr_prog, 0);
         lui_object_set_bg_color(sldr_prog, lui_rgb(220, 220, 250));
         lui_slider_set_extra_colors(sldr_prog, 0, lui_rgb(120, 0, 250), 0);
-        lui_slider_set_range(sldr_prog, 0, current_song.duration);
+        lui_slider_set_range(sldr_prog, 0, current_song->duration);
         lui_slider_set_value(sldr_prog, 0);
+        lui_object_set_callback(sldr_prog, slider_change_cb);
 
         lbl_time_ela = lui_label_create();
         lui_object_add_to_parent(lbl_time_ela, scn_main);
@@ -399,7 +404,7 @@ int main (int argc, char** argv)
         lbl_time_tot = lui_label_create();
         lui_object_add_to_parent(lbl_time_tot, scn_main);
         lui_object_set_position(lbl_time_tot, 275, 164);
-        format_time_str(current_song.duration, time_tot_str);
+        format_time_str(current_song->duration, time_tot_str);
         lui_label_set_text(lbl_time_tot, time_tot_str);
         lui_label_set_text_color(lbl_time_tot, lui_rgb(0, 0, 0));
         lui_object_set_area(lbl_time_tot, lbl_dim1[0], lbl_dim1[1]);
@@ -485,6 +490,15 @@ void playlst_btn_cb(lui_obj_t* obj)
     lui_scene_set_active(scn_second);
 }
 
+void fav_btn_cb(lui_obj_t* obj)
+{
+    uint8_t event = lui_object_get_event(obj);
+    if (event != LUI_EVENT_VALUE_CHANGED)
+        return;
+    uint8_t chk = lui_button_get_check_value(obj);
+    current_song->is_fav = chk;
+}
+
 void about_btn_cb(lui_obj_t* obj)
 {
     uint8_t event = lui_object_get_event(obj);
@@ -501,6 +515,17 @@ void popup_cls_btn_cb(lui_obj_t* obj)
         return;
     lui_object_set_visibility(pnl_about_popup, 0);
     is_popup_vis = 0;
+}
+
+void slider_change_cb(lui_obj_t* obj)
+{
+    uint8_t event = lui_object_get_event(obj);
+    if (event != LUI_EVENT_VALUE_CHANGED)
+        return;
+    int16_t val = lui_slider_get_value(obj);
+    current_song_timer = val;
+    format_time_str(current_song_timer, time_ela_str);
+    lui_label_set_text(lbl_time_ela, time_ela_str);
 }
 
 void play_next_song()
@@ -526,7 +551,7 @@ void song_progress_timer_cb(int val)
     glutTimerFunc(1000, song_progress_timer_cb, val);
     if (!is_playing)
         return;
-    if (current_song_timer+1 > current_song.duration)
+    if (current_song_timer+1 > current_song->duration)
     {
         play_next_song();
         return;
@@ -546,19 +571,19 @@ void song_progress_timer_cb(int val)
 
 void set_current_song(uint8_t song_index)
 {
-    current_song = song_list[song_index];
+    current_song = &song_list[song_index];
     current_song_timer = 0;
     is_playing = 1;
-    format_time_str(current_song.duration, time_tot_str);
+    format_time_str(current_song->duration, time_tot_str);
     lui_label_set_text(lbl_time_tot, time_tot_str);
     format_time_str(0, time_ela_str);
     lui_label_set_text(lbl_time_ela, time_ela_str);
-    lui_label_set_text(lbl_song, current_song.title);
-    lui_label_set_text(lbl_artist, current_song.artist);
-    lui_label_set_text(lbl_album, current_song.album);
+    lui_label_set_text(lbl_song, current_song->title);
+    lui_label_set_text(lbl_artist, current_song->artist);
+    lui_label_set_text(lbl_album, current_song->album);
     lui_button_set_checked(btn_play);
-    lui_button_set_value(btn_hrt, current_song.is_fav);
-    lui_slider_set_range(sldr_prog, 0, current_song.duration);
+    lui_button_set_value(btn_fav, current_song->is_fav);
+    lui_slider_set_range(sldr_prog, 0, current_song->duration);
     lui_slider_set_value(sldr_prog, 0);
 }
 
