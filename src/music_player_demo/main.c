@@ -37,6 +37,9 @@ OpenGL will use it to create a window */
 #define HOR_RES		320
 #define VERT_RES	240
 
+uint16_t disp_buffer[HOR_RES * 20];
+uint8_t memblk[20000];
+
 struct song_info {
     char* title;
     char* artist;
@@ -110,6 +113,7 @@ uint32_t g_sidp_buffer_max_size = HOR_RES * VERT_RES;
 /* LameUI callbacks --------------------------------------------------------------- */
 void lameui_input_read_cb (lui_touch_input_data_t *input);
 void lameui_draw_pixels_cb (uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t color);
+void lameui_draw_disp_buff_cb (uint16_t* disp_buff, lui_area_t* area);
 void lameui_input_read_cb (lui_touch_input_data_t *input);
 void lameui_render_cmplt_cb();
 
@@ -168,7 +172,6 @@ int main (int argc, char** argv)
 	 ###################################################################################*/
 
 	/* [IMPORTANT:] do it at the begining. Mandatory! */
-	uint8_t memblk[20000];
 	lui_init(memblk, sizeof(memblk));
 
 	/* ---------------------------------------------------------- */
@@ -178,6 +181,8 @@ int main (int argc, char** argv)
 	lui_dispdrv_set_resolution(my_display_driver, HOR_RES, VERT_RES);
 	lui_dispdrv_set_draw_pixels_area_cb(my_display_driver, lameui_draw_pixels_cb);
 	lui_dispdrv_set_render_complete_cb(my_display_driver, lameui_render_cmplt_cb);
+    lui_dispdrv_set_disp_buff(my_display_driver, disp_buffer, HOR_RES*20);
+    lui_dispdrv_set_draw_disp_buff_cb(my_display_driver, lameui_draw_disp_buff_cb);
 
 	lui_touch_input_dev_t* my_input_device = lui_touch_inputdev_create();
 	lui_touch_inputdev_register(my_input_device);
@@ -635,6 +640,46 @@ void lameui_render_cmplt_cb()
 {
 	glFlush();
 	g_disp_buffer_counter = 0; //reset the counter
+}
+
+void lameui_draw_disp_buff_cb (uint16_t* disp_buff, lui_area_t* area)
+{
+    uint16_t temp_x;
+    uint16_t temp_y;
+
+    // Prepare the display buffer
+    // After the loop ends, the prepared buffer is flushed
+    for (temp_y = area->y; temp_y <= area->y + area->h - 1; temp_y++)
+    {
+        for (temp_x = area->x; temp_x <= area->x + area->w - 1; temp_x++)
+        {
+            GLint x = (GLint)temp_x;
+            GLint y = (GLint)temp_y;
+            // Seperating RGB565 color
+            uint8_t uint_red_5 = (*disp_buff >> 8) & 0xF8;
+            uint8_t uint_green_6 = (*disp_buff >> 3) & 0xFC;
+            uint8_t uint_blue_5 = (*disp_buff << 3);
+
+            // Normalizing value within range 0.0 to 1.0
+            GLfloat glf_red = (GLfloat)uint_red_5 / 255.0;
+            GLfloat glf_green = (GLfloat)uint_green_6 / 255.0;
+            GLfloat glf_blue = (GLfloat)uint_blue_5 / 255.0;
+
+            // Set the color
+            glColor3f(glf_red, glf_green, glf_blue);
+            glBegin(GL_POINTS);
+
+            // glVertex2i just draws a point on specified co-ordinate
+            glVertex2i(x, y);
+            glEnd();
+
+            ++disp_buff;
+        }
+    }
+
+    glFlush();
+
+    
 }
 
 /* Draw an area of pixels in one go.
