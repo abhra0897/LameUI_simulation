@@ -29,6 +29,7 @@ BINDIR		 =  ../../bin/
 # User source files (c/cpp)
 SRCS   	 	 =  simple_example.c
 SRCS		+=  forest_653448.c
+SRCS		+=  forest.c
 SRCS		+=  send_button.c
 SRCS		+=  sent_button.c
 

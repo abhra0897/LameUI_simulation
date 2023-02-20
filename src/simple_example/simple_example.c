@@ -11,7 +11,8 @@
 
 #include "../../LameUI/lame_ui.h" /* No need to set full paths like this. It's just to visualize */
 #include "../../LameUI/fonts/montserrat_regular_32.h"
-#include "res/forest_653448.h"
+// #include "res/forest_653448.h"
+#include "res/forest.h"
 #include "res/send_button.h"
 #include "res/sent_button.h"
 
@@ -21,7 +22,9 @@
 OpenGL will use it to create a window */
 #define HOR_RES		240
 #define VERT_RES	240
+#define DISP_BUFF_PX_CNT (HOR_RES * VERT_RES)
 
+uint16_t disp_buffer[DISP_BUFF_PX_CNT];
 
 /* following UI elements are made global so we can access them in the event handler */
 lui_touch_input_data_t g_input = 
@@ -44,6 +47,7 @@ uint32_t g_sidp_buffer_max_size = HOR_RES * VERT_RES;
 /* LameUI callbacks --------------------------------------------------------------- */
 void lameui_input_read_cb (lui_touch_input_data_t *input);
 void lameui_draw_pixels_cb (uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t color);
+void lameui_draw_disp_buff_cb (uint16_t* disp_buff, lui_area_t* area);
 void lameui_input_read_cb (lui_touch_input_data_t *input);
 void lameui_render_cmplt_cb();
 /* End LameUI callbacks ------------------------------------------------------------ */
@@ -93,6 +97,8 @@ int main (int argc, char** argv)
 	lui_dispdrv_set_resolution(my_display_driver, HOR_RES, VERT_RES);
 	lui_dispdrv_set_draw_pixels_area_cb(my_display_driver, lameui_draw_pixels_cb);
 	lui_dispdrv_set_render_complete_cb(my_display_driver, lameui_render_cmplt_cb);
+    lui_dispdrv_set_disp_buff(my_display_driver, disp_buffer, DISP_BUFF_PX_CNT);
+	lui_dispdrv_set_draw_disp_buff_cb(my_display_driver, lameui_draw_disp_buff_cb);
 
 	lui_touch_input_dev_t *my_input_device = lui_touch_inputdev_create();
 	lui_touch_inputdev_register(my_input_device);
@@ -102,7 +108,8 @@ int main (int argc, char** argv)
 	/* create and add scenes */
 	scene_1 = lui_scene_create();
 	lui_scene_set_active(scene_1);
-	lui_scene_set_bitmap_image(scene_1, &BITMAP_forest_653448);
+	// lui_scene_set_bitmap_image(scene_1, &BITMAP_forest);
+	lui_object_set_bg_color(scene_1, lui_rgb(255,0,0));
 
     /* add a button to go to next scene (g_scene_two) */
 	label_1 = lui_label_create();
@@ -117,7 +124,7 @@ int main (int argc, char** argv)
 	lui_object_add_to_parent(button_1, scene_1);
 	lui_object_set_position(button_1, 65, 75);
 	lui_object_set_area(button_1, 110, 40);
-	lui_button_set_label_texts(button_1, "Button 1", "Pressed!");
+	// lui_button_set_label_texts(button_1, "Button 1", "Pressed!");
 	lui_object_set_border_visibility(button_1, 1);
 
 	lui_obj_t* label_2 = lui_label_create();
@@ -128,7 +135,7 @@ int main (int argc, char** argv)
 
 	lui_obj_t* img_button = lui_button_create();
 	lui_object_add_to_parent(img_button, scene_1);
-	lui_object_set_area(img_button, 165, 49);
+	lui_object_set_area(img_button, 160, 49);
 	lui_object_set_position(img_button, 40, 170);
 	lui_button_set_bitmap_images(img_button, &BITMAP_send_button, &BITMAP_sent_button);
 	lui_button_set_checkable(img_button, 1);
@@ -187,6 +194,46 @@ void lameui_render_cmplt_cb()
 	g_disp_buffer_counter = 0; //reset the counter
 }
 
+void lameui_draw_disp_buff_cb (uint16_t* disp_buff, lui_area_t* area)
+{
+    uint16_t temp_x;
+    uint16_t temp_y;
+
+    // Prepare the display buffer
+    // After the loop ends, the prepared buffer is flushed
+    for (temp_y = area->y; temp_y < area->y + area->h; temp_y++)
+    {
+        for (temp_x = area->x; temp_x < area->x + area->w; temp_x++)
+        {
+            GLint x = (GLint)temp_x;
+            GLint y = (GLint)temp_y;
+            // Seperating RGB565 color
+            uint8_t uint_red_5 = (*disp_buff >> 8) & 0xF8;
+            uint8_t uint_green_6 = (*disp_buff >> 3) & 0xFC;
+            uint8_t uint_blue_5 = (*disp_buff << 3);
+
+            // Normalizing value within range 0.0 to 1.0
+            GLfloat glf_red = (GLfloat)uint_red_5 / 255.0;
+            GLfloat glf_green = (GLfloat)uint_green_6 / 255.0;
+            GLfloat glf_blue = (GLfloat)uint_blue_5 / 255.0;
+
+            // Set the color
+            glColor3f(glf_red, glf_green, glf_blue);
+            glBegin(GL_POINTS);
+
+            // glVertex2i just draws a point on specified co-ordinate
+            glVertex2i(x, y);
+            glEnd();
+
+            ++disp_buff;
+        }
+    }
+
+    glFlush();
+
+    
+}
+
 /* Draw an area of pixels in one go.
 This is faster because the opengl buffer is filled using a loop,
 and then the preapred buffer is fflushed in one go */
@@ -210,9 +257,9 @@ void lameui_draw_pixels_cb (uint16_t p_x, uint16_t p_y, uint16_t p_width, uint16
 
 	// Prepare the display buffer
 	// After the loop ends, the prepared buffer is flushed
-	for (temp_y = p_y; temp_y <= p_y + p_height - 1; temp_y++)
+	for (temp_y = p_y; temp_y < p_y + p_height; temp_y++)
 	{
-		for (temp_x = p_x; temp_x <= p_x + p_width - 1; temp_x++)
+		for (temp_x = p_x; temp_x < p_x + p_width; temp_x++)
 		{
 			GLint x = (GLint)temp_x;
 			GLint y = (GLint)temp_y;
