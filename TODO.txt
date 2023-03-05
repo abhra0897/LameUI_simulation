@@ -7,6 +7,6 @@
 
 
 [ NEW ]
-- Seems few rows/columns missing when rendering using new buffer method. Investigate
+- Update all docs (and README + Mainpage) as per new breaking changes
+- Speed up glyph rendering and mono transparent bitmap rendering by making it more efficient
 - Handle clicking on blank area on a list
-- Button is drawing background color too when drawing a bitmap. It maybe fine for mono bitmap, but not ok for other types. Investigate it.
