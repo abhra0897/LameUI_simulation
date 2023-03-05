@@ -8,5 +8,5 @@ Proper template and tutorial for this simulator will be added soon.
 
 - LameUI Repository: https://github.com/abhra0897/LameUI
 
-- LameUI latest stable release: [v1.0](https://github.com/abhra0897/LameUI/releases/tag/v1.0-stable)
+- Compatible with LameUI v2.0 release: [v2.0](https://github.com/abhra0897/LameUI/releases/tag/v2.0-stable)
 
