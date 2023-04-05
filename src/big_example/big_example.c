@@ -16,11 +16,17 @@
 #include "res/grad.h"
 #include "res/grad_color1_bg.h"
 
+#define UNUSED(x) (void)(x)
+
 // Set display resolution
 // OpenGL will use it to create a window
 #define HOR_RES		720
 #define VERT_RES	640
 
+#define DISP_BUFF_PX_CNT (HOR_RES * VERT_RES)
+
+uint16_t disp_buffer[DISP_BUFF_PX_CNT];
+uint8_t memblk[20000];
 
 // following UI elements are made global so we can access them in the event handler
 lui_touch_input_data_t g_input = 
@@ -48,35 +54,39 @@ lui_obj_t* slider2;
 lui_obj_t* keyboard;
 lui_obj_t* btngrid_numpad;
 
+lui_obj_t* g_active_txtbox = NULL;
 
 double g_points[50][2];
 char g_btn_press_cnt[4] = {0};// For same reason as above
 uint16_t g_btn_press_cnt_int = 0;
-uint32_t g_disp_buffer_counter = 0;
-uint32_t g_sidp_buffer_max_size = HOR_RES * VERT_RES;
 
 
 // Callback functions for LameUI ---------------------------------------------------
+void lameui_input_read_cb (lui_touch_input_data_t *input);
+void lameui_draw_disp_buff_cb (uint16_t* disp_buff, lui_area_t* area);
+
 void count_and_reset_event_handler(lui_obj_t* obj);
 void popupbtn_event_handler(lui_obj_t* obj);
 void change_grph_event_handler(lui_obj_t* obj);
 void enable_wifi_and_bt_event_handler(lui_obj_t* obj);
 void slider_event_handler(lui_obj_t* obj);
 void scn_change_event_handler(lui_obj_t* obj);
-void my_input_read_opengl (lui_touch_input_data_t *input);
-void my_set_pixel_area_opengl (uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t color);
+void textbox_callback(lui_obj_t* obj_txtbox);
+void list1_cb(lui_obj_t* obj);
 // End LameUI callbacks ------------------------------------------------------------
 
 // opengl functions. Not specific to LameUI ----------------------------------------
-void gl_init();
+void gl_init(int argc, char** argv);
 // End opengl function -------------------------------------------------------------
 
 // glut callback functions. These are not LameUI specific --------------------------
 void glutDisplay();
 void glutIdle();
-void glutMouseMove(int x, int y);
-void glutMousePressMove(int x, int y);
-void glutMousePress(int button, int state, int x, int y);
+void glut_mouse_move(int x, int y);
+void glut_mouse_press_move(int x, int y);
+void glut_mouse_press(int button, int state, int x, int y);
+void glut_process_normal_keys(unsigned char key, int x, int y);
+void glut_process_spcl_keys(int key, int x, int y);
 // End glut callbacks ---------------------------------------------------------------
 
 // user functions
@@ -85,280 +95,16 @@ void prepare_chart_data_2(uint16_t val);
 // end user funcions
 
 
-// Initialize OpenGL
-void gl_init()
-{
-	// making background color black as first
-	// 3 arguments all are 0.0
-	glClearColor(0.0, 0.0, 0.0, 1.0);
-
-	// breadth of picture boundary is 1 pixel
-	glPointSize(1.0);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-
-	// setting window dimension in X- and Y- direction
-	//gluOrtho2D(-25, HOR_RES+25, VERT_RES+25, -25);
-	gluOrtho2D(-1, HOR_RES - 1, VERT_RES - 1, -1);
-
-	// Clear everything
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	glFlush();
-}
-
-
-// Read input from an input device
-// It should take device position (x, y) and a button's status
-void my_input_read_opengl (lui_touch_input_data_t *input)
-{
-	input->is_pressed = g_input.is_pressed;
-	input->y = g_input.y;
-	input->x = g_input.x;
-
-	//printf("[DEBUG] void my_input_read_opengl(). x:%d\ty: %d\n", input->y, input->x);
-}
-
-// Event handler for button, called back by LameUI
-void count_and_reset_event_handler(lui_obj_t* obj)
-{
-	//printf("\nState Change occured. Event ID: %d", event);
-	//memset(event_name, 0, strlen(event_name));
-	uint8_t event = lui_object_get_event(obj);
-	if (event ==  LUI_EVENT_PRESSED)
-	{
-		if (obj == g_btn_count)
-		{
-			sprintf(g_btn_press_cnt, "%d", ++g_btn_press_cnt_int);
-			lui_label_set_text(g_lbl_cntr_value, g_btn_press_cnt);		
-		}
-		else /* if (obj == g_btn_reset) */
-		{
-			g_btn_press_cnt_int = 0;
-			sprintf(g_btn_press_cnt, "%d", g_btn_press_cnt_int);
-			lui_label_set_text(g_lbl_cntr_value, g_btn_press_cnt);
-		}
-
-		prepare_chart_data_2(g_btn_press_cnt_int + 5);
-		lui_linechart_set_data_source(g_grph, (double* )&g_points, 50);
-	}
-}
-
-void textbox_callback(lui_obj_t* obj_txtbox)
-{
-	uint8_t event = lui_object_get_event(obj_txtbox);
-	if (event == LUI_EVENT_ENTERED)
-	{
-		lui_keyboard_set_target_txtbox(keyboard, obj_txtbox);
-	}
-	else if (event == LUI_EVENT_EXITED)
-	{
-		lui_keyboard_set_target_txtbox(keyboard, NULL);
-	}
-}
-
-// Event handler for popup buttons
-void popupbtn_event_handler(lui_obj_t* obj)
-{
-	//printf("\nState Change occured. Event ID: %d", event);
-	//memset(event_name, 0, strlen(event_name));
-	uint8_t event = lui_object_get_event(obj);
-	switch (event)
-	{
-	case LUI_EVENT_PRESSED:
-		lui_object_set_visibility(g_popup_panel, 0);
-		fprintf(stderr, "Invisible!\n");
-		break;	
-	default:
-		break;
-	}
-}
-
-
-// Event handler for switch change graph. Called back by LameUI
-void enable_wifi_and_bt_event_handler(lui_obj_t* obj)
-{	
-	// change background color
-	uint8_t event = lui_object_get_event(obj);
-	if (event == LUI_EVENT_VALUE_CHANGED)
-	{
-		uint8_t val = lui_switch_get_value(obj);
-		if (obj == g_swtch_enable_wifi)
-		{
-			if (val == 1)
-			{
-				lui_label_set_text(g_popup_label, "Alert:\nWiFi is enabled");
-				lui_object_set_visibility(g_popup_panel, 1);
-				fprintf(stderr, "Visible!\n");
-			}
-			else
-			{
-				lui_label_set_text(g_popup_label, "Alert:\nWiFi is disabled");
-				lui_object_set_visibility(g_popup_panel, 1);
-				fprintf(stderr, "Visible!\n");
-			}
-		}
-		else if (obj == g_swtch_enable_bluetooth)
-		{
-			if (val == 1)
-			{
-				lui_label_set_text(g_popup_label, "Alert:\nBluetooth is enabled");
-				lui_object_set_visibility(g_popup_panel, 1);
-				fprintf(stderr, "Visible!\n");
-			}
-			else
-			{
-				lui_label_set_text(g_popup_label, "Alert:\nBluetooth is disabled");
-				lui_object_set_visibility(g_popup_panel, 1);
-				fprintf(stderr, "Visible!\n");
-			}
-		}
-	}
-	
-}
-
-// Event handler for slider. Changes a label's text based on slider value
-void slider_event_handler(lui_obj_t* obj)
-{
-	if (lui_object_get_event(obj) == LUI_EVENT_VALUE_CHANGED)
-	{
-		int16_t val = lui_slider_get_value(obj);
-		if (obj == slider1)
-		{
-			static char buf_slider1[5]; /* max 3 bytes for number plus 1 sign plus 1 null terminating byte */
-			snprintf(buf_slider1, 5, "%d", val);
-			lui_label_set_text(g_lbl_slider1_val, buf_slider1);
-		}
-		else if (obj == slider2)
-		{
-			static char buf_slider2[5]; /* max 3 bytes for number plus 1 sign plus 1 null terminating byte */
-			snprintf(buf_slider2, 5, "%d", val);
-			lui_label_set_text(g_lbl_slider2_val, buf_slider2);
-		}
-		
-	}
-}
-
-// Event handler for next_scene button and prev_scene button press
-void scn_change_event_handler(lui_obj_t* obj)
-{
-	uint8_t event = lui_object_get_event(obj);
-	
-	if (event == LUI_EVENT_PRESSED)
-	{
-		if (obj == g_btn_nxt_scn)
-		{
-			lui_scene_set_active(g_scene_two); 
-		}
-		else if (obj == g_btn_prev_scn)
-		{
-			lui_scene_set_active(g_scene_one); 
-		}
-
-	}
-}
-
-void list1_cb(lui_obj_t* obj)
-{
-	uint8_t event = lui_object_get_event(obj);
-	if (event == LUI_EVENT_PRESSED)
-	{
-		const char* txt = lui_list_get_item_text(obj, lui_list_get_selected_item_index(obj));
-		if (txt != NULL)
-			fprintf(stderr, "Selected: %s\n", txt);
-	}
-}
-
-// Flush the current buffer when this callback is called by LameUI.
-// Using this, no need to flush every time set_pixel_cb is called. Rather buffer it and flush all together
-void my_render_complete_handler()
-{
-	glFlush();
-	g_disp_buffer_counter = 0; //reset the counter
-}
-
-
-// Draw an area of pixels in one go.
-// This is faster because the opengl buffer is filled using a loop,
-// and then the preapred buffer is fflushed in one go
-void my_set_pixel_area_opengl (uint16_t p_x, uint16_t p_y, uint16_t p_width, uint16_t p_height, uint16_t p_color)
-{
-	uint16_t temp_x;
-	uint16_t temp_y;
-
-	// Seperating RGB565 color
-	uint8_t uint_red_5 = (p_color >> 8) & 0xF8;
-	uint8_t uint_green_6 = (p_color >> 3) & 0xFC;
-	uint8_t uint_blue_5 = (p_color << 3);
-
-	// Normalizing value within range 0.0 to 1.0
-	GLfloat glf_red = (GLfloat)uint_red_5 / 255.0;
-	GLfloat glf_green = (GLfloat)uint_green_6 / 255.0;
-	GLfloat glf_blue = (GLfloat)uint_blue_5 / 255.0;
-
-	// Set the color
-	glColor3f(glf_red, glf_green, glf_blue);
-
-	// Prepare the display buffer
-	// After the loop ends, the prepared buffer is flushed
-	for (temp_y = p_y; temp_y <= p_y + p_height - 1; temp_y++)
-	{
-		for (temp_x = p_x; temp_x <= p_x + p_width - 1; temp_x++)
-		{
-			GLint x = (GLint)temp_x;
-			GLint y = (GLint)temp_y;
-
-			glBegin(GL_POINTS);
-
-			// glVertex2i just draws a point on specified co-ordinate
-			glVertex2i(x, y);
-			glEnd();
-
-			// increase the buffer counter
-			g_disp_buffer_counter++;
-
-			// If size reached max buffer size, flush it now
-			if (g_disp_buffer_counter >= g_sidp_buffer_max_size)
-			{
-				glFlush();
-				g_disp_buffer_counter = 0; //reset the counter
-			}
-		}
-	}
-
-	// If size reached max buffer size, flush it now
-	if (g_disp_buffer_counter >= g_sidp_buffer_max_size)
-	{
-		glFlush();
-		g_disp_buffer_counter = 0; //reset the counter
-	}
-	
-}
-
-
 int main (int argc, char** argv)
 {
-	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-
-	// giving window size in X- and Y- direction
-	// pading in both sides
-	// glutInitWindowSize(HOR_RES + (PADDING * 2), VERT_RES + (PADDING * 2));
-	glutInitWindowSize(HOR_RES, VERT_RES);
-	glutInitWindowPosition(0, 0);
-
-	// Giving name to window
-	glutCreateWindow("LameUI Simulator");
-
 	// Initialize opengl
-	gl_init();	
+	gl_init(argc, argv);	
 
 	/*###################################################################################
 	 #		Starts LameUI Based Code. The Below Part Is Hardware/Platform Agnostic		#
 	 ###################################################################################*/
 
 	// [IMPORTANT:] do it at the begining. Mandatory!
-	uint8_t memblk[20000];
 	lui_init(memblk, sizeof(memblk));
 
 	//----------------------------------------------------------
@@ -366,13 +112,13 @@ int main (int argc, char** argv)
 	lui_dispdrv_t *my_display_driver = lui_dispdrv_create();
 	lui_dispdrv_register(my_display_driver);
 	lui_dispdrv_set_resolution(my_display_driver, HOR_RES, VERT_RES);
-	lui_dispdrv_set_draw_pixels_area_cb(my_display_driver, my_set_pixel_area_opengl);
-	lui_dispdrv_set_render_complete_cb(my_display_driver, my_render_complete_handler);
-	//my_display_driver = lui_dispdrv_destroy(my_display_driver);
+	lui_dispdrv_set_draw_disp_buff_cb(my_display_driver, lameui_draw_disp_buff_cb);
+    lui_dispdrv_set_disp_buff(my_display_driver, disp_buffer, DISP_BUFF_PX_CNT);
+    lui_dispdrv_set_draw_disp_buff_cb(my_display_driver, lameui_draw_disp_buff_cb);
 
 	lui_touch_input_dev_t *my_input_device = lui_touch_inputdev_create();
 	lui_touch_inputdev_register(my_input_device);
-	lui_touch_inputdev_set_read_input_cb(my_input_device, my_input_read_opengl);	
+	lui_touch_inputdev_set_read_input_cb(my_input_device, lameui_input_read_cb);	
 
 	//----------------------------------------------------------
 	//create and add scenes
@@ -743,14 +489,254 @@ int main (int argc, char** argv)
 	/*-----------------------------------------------------------------------------------
 	 -		Glut related functions for drawing and input handling						-
 	 -----------------------------------------------------------------------------------*/
-	glutMouseFunc(glutMousePress);		// to handle mouse press while not being moved
-	glutMotionFunc(glutMousePressMove);	// to handle mouse movement while being clicked
-	glutPassiveMotionFunc(glutMouseMove);	// to handle mouse movement while NOT being pressed
+	glutMouseFunc(glut_mouse_press);		// to handle mouse press while not being moved
+	glutMotionFunc(glut_mouse_press_move);	// to handle mouse movement while being clicked
+	glutPassiveMotionFunc(glut_mouse_move);	// to handle mouse movement while NOT being pressed
+	glutKeyboardFunc(glut_process_normal_keys);
+	glutSpecialFunc(glut_process_spcl_keys);
 	glutIdleFunc(glutIdle);
 	glutDisplayFunc(glutDisplay);
 	glutMainLoop();
 
 	return 0;
+}
+
+// Initialize OpenGL
+void gl_init(int argc, char** argv)
+{
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+
+	/* giving window size in X- and Y- direction
+	pading in both sides
+	glutInitWindowSize(HOR_RES + (PADDING * 2), VERT_RES + (PADDING * 2)); */
+	glutInitWindowSize(HOR_RES, VERT_RES);
+	glutInitWindowPosition(0, 0);
+
+	/* Giving name to window */
+	glutCreateWindow("LameUI Simulator");
+    
+	// making background color black as first
+	// 3 arguments all are 0.0
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// breadth of picture boundary is 1 pixel
+	glPointSize(1.0);
+
+     // set up orthographic projection
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	// setting window dimension in X- and Y- direction
+	//gluOrtho2D(-25, HOR_RES+25, VERT_RES+25, -25);
+	gluOrtho2D(0, HOR_RES, VERT_RES, 0);
+
+    glFlush();
+}
+
+
+// Read input from an input device
+// It should take device position (x, y) and a button's status
+void lameui_input_read_cb (lui_touch_input_data_t *input)
+{
+	input->is_pressed = g_input.is_pressed;
+	input->y = g_input.y;
+	input->x = g_input.x;
+
+	//printf("[DEBUG] void lameui_input_read_cb(). x:%d\ty: %d\n", input->y, input->x);
+}
+
+// Event handler for button, called back by LameUI
+void count_and_reset_event_handler(lui_obj_t* obj)
+{
+	//printf("\nState Change occured. Event ID: %d", event);
+	//memset(event_name, 0, strlen(event_name));
+	uint8_t event = lui_object_get_event(obj);
+	if (event ==  LUI_EVENT_PRESSED)
+	{
+		if (obj == g_btn_count)
+		{
+			sprintf(g_btn_press_cnt, "%d", ++g_btn_press_cnt_int);
+			lui_label_set_text(g_lbl_cntr_value, g_btn_press_cnt);		
+		}
+		else /* if (obj == g_btn_reset) */
+		{
+			g_btn_press_cnt_int = 0;
+			sprintf(g_btn_press_cnt, "%d", g_btn_press_cnt_int);
+			lui_label_set_text(g_lbl_cntr_value, g_btn_press_cnt);
+		}
+
+		prepare_chart_data_2(g_btn_press_cnt_int + 5);
+		lui_linechart_set_data_source(g_grph, (double* )&g_points, 50);
+	}
+}
+
+void textbox_callback(lui_obj_t* obj_txtbox)
+{
+	uint8_t event = lui_object_get_event(obj_txtbox);
+	if (event == LUI_EVENT_ENTERED)
+	{
+		// lui_keyboard_set_target_txtbox(keyboard, obj_txtbox);
+		/* Exit from previously active textbox (if any) */
+		lui_textbox_exit_edit_mode(g_active_txtbox);
+		g_active_txtbox = obj_txtbox;	// for physical keyboard
+	}
+	else if (event == LUI_EVENT_EXITED)
+	{
+		lui_keyboard_set_target_txtbox(keyboard, NULL);
+		g_active_txtbox = NULL;		// for physical keyboard
+	}
+}
+
+// Event handler for popup buttons
+void popupbtn_event_handler(lui_obj_t* obj)
+{
+	//printf("\nState Change occured. Event ID: %d", event);
+	//memset(event_name, 0, strlen(event_name));
+	uint8_t event = lui_object_get_event(obj);
+	switch (event)
+	{
+	case LUI_EVENT_PRESSED:
+		lui_object_set_visibility(g_popup_panel, 0);
+		fprintf(stderr, "Invisible!\n");
+		break;	
+	default:
+		break;
+	}
+}
+
+
+// Event handler for switch change graph. Called back by LameUI
+void enable_wifi_and_bt_event_handler(lui_obj_t* obj)
+{	
+	// change background color
+	uint8_t event = lui_object_get_event(obj);
+	if (event == LUI_EVENT_VALUE_CHANGED)
+	{
+		uint8_t val = lui_switch_get_value(obj);
+		if (obj == g_swtch_enable_wifi)
+		{
+			if (val == 1)
+			{
+				lui_label_set_text(g_popup_label, "Alert:\nWiFi is enabled");
+				lui_object_set_visibility(g_popup_panel, 1);
+				fprintf(stderr, "Visible!\n");
+			}
+			else
+			{
+				lui_label_set_text(g_popup_label, "Alert:\nWiFi is disabled");
+				lui_object_set_visibility(g_popup_panel, 1);
+				fprintf(stderr, "Visible!\n");
+			}
+		}
+		else if (obj == g_swtch_enable_bluetooth)
+		{
+			if (val == 1)
+			{
+				lui_label_set_text(g_popup_label, "Alert:\nBluetooth is enabled");
+				lui_object_set_visibility(g_popup_panel, 1);
+				fprintf(stderr, "Visible!\n");
+			}
+			else
+			{
+				lui_label_set_text(g_popup_label, "Alert:\nBluetooth is disabled");
+				lui_object_set_visibility(g_popup_panel, 1);
+				fprintf(stderr, "Visible!\n");
+			}
+		}
+	}
+	
+}
+
+// Event handler for slider. Changes a label's text based on slider value
+void slider_event_handler(lui_obj_t* obj)
+{
+	if (lui_object_get_event(obj) == LUI_EVENT_VALUE_CHANGED)
+	{
+		int16_t val = lui_slider_get_value(obj);
+		if (obj == slider1)
+		{
+			static char buf_slider1[5]; /* max 3 bytes for number plus 1 sign plus 1 null terminating byte */
+			snprintf(buf_slider1, 5, "%d", val);
+			lui_label_set_text(g_lbl_slider1_val, buf_slider1);
+		}
+		else if (obj == slider2)
+		{
+			static char buf_slider2[5]; /* max 3 bytes for number plus 1 sign plus 1 null terminating byte */
+			snprintf(buf_slider2, 5, "%d", val);
+			lui_label_set_text(g_lbl_slider2_val, buf_slider2);
+		}
+		
+	}
+}
+
+// Event handler for next_scene button and prev_scene button press
+void scn_change_event_handler(lui_obj_t* obj)
+{
+	uint8_t event = lui_object_get_event(obj);
+	
+	if (event == LUI_EVENT_PRESSED)
+	{
+		if (obj == g_btn_nxt_scn)
+		{
+			lui_scene_set_active(g_scene_two); 
+		}
+		else if (obj == g_btn_prev_scn)
+		{
+			lui_scene_set_active(g_scene_one); 
+		}
+
+	}
+}
+
+void list1_cb(lui_obj_t* obj)
+{
+	uint8_t event = lui_object_get_event(obj);
+	if (event == LUI_EVENT_PRESSED)
+	{
+		const char* txt = lui_list_get_item_text(obj, lui_list_get_selected_item_index(obj));
+		if (txt != NULL)
+			fprintf(stderr, "Selected: %s\n", txt);
+	}
+}
+
+
+// Draw an area of pixels in one go.
+// This is faster because the opengl buffer is filled using a loop,
+// and then the preapred buffer is flushed in one go
+void lameui_draw_disp_buff_cb (uint16_t* disp_buff, lui_area_t* area)
+{
+    uint16_t temp_x;
+    uint16_t temp_y;
+
+    glBegin(GL_POINTS);
+
+    // Prepare the display buffer
+    // After the loop ends, the prepared buffer is flushed
+    for (temp_y = area->y; temp_y <= area->y + area->h - 1; temp_y++)
+    {
+        for (temp_x = area->x; temp_x <= area->x + area->w - 1; temp_x++)
+        {
+            uint8_t r_lsb = (*disp_buff >> 11) & 0x1F;
+            uint8_t g_lsb = (*disp_buff >> 5) & 0x3F;
+            uint8_t b_lsb = (*disp_buff >> 0) & 0x1F;
+
+            // Set the color
+            glColor3ub(r_lsb << 3, g_lsb << 2, b_lsb << 3);
+            /**
+             * glVertex2i just draws a point on specified co-ordinate.
+             * Actual drawing is done after calling glFlush()
+             */
+            glVertex2i(temp_x, temp_y);
+
+            ++disp_buff;
+        }
+    }
+    glEnd();
+
+    /* No need to flush here. We're flusdhing using a timer already (every 16 ms) */
+    // glFlush();
+    // // glutSwapBuffers();   /* Can be used instead of glFlush() */
 }
 
 // This function is called back by glut when drawing is needed
@@ -767,8 +753,10 @@ void glutDisplay()
 
 // This function is called back by glut when mouse is moved passively
 // We're setting the global input variable's value here
-void glutMouseMove(int x, int y)
+void glut_mouse_move(int x, int y)
 {
+	UNUSED(x);
+	UNUSED(y);
 	//printf ("[DEBUG] void myMouse( int x: %d, int y: %d )\n", x, y);			//send all output to screen
 
 	/* Commented out to simulate touch input */
@@ -779,7 +767,7 @@ void glutMouseMove(int x, int y)
 
 // This function is called back by glut when mouse is moved while being pressed
 // We're setting the global input variable's value here
-void glutMousePressMove(int x, int y)
+void glut_mouse_press_move(int x, int y)
 {
 	g_input.x = x;
 	g_input.y = y;
@@ -787,7 +775,7 @@ void glutMousePressMove(int x, int y)
 
 // This function is called back by glut when mouse is pressed
 // This is to simulates touch input
-void glutMousePress(int button, int state, int x, int y)
+void glut_mouse_press(int button, int state, int x, int y)
 {
 	g_input.is_pressed = 0;
 	g_input.x = -1;
@@ -800,6 +788,59 @@ void glutMousePress(int button, int state, int x, int y)
 			g_input.x = x;
 			g_input.y = y;
 		}
+	}
+}
+
+void glut_process_normal_keys(unsigned char key, int x, int y)
+{
+	fprintf(stderr, "		KEY: %d\n", key);
+	if (!g_active_txtbox)
+		return;
+
+	uint16_t caret_index = lui_textbox_get_caret_index(g_active_txtbox);
+	if (key >= 32 && key <= 126)
+	{
+		lui_textbox_insert_char(g_active_txtbox, (char)key);
+		// lui_textbox_set_caret_index(g_active_txtbox, ++caret_index);
+	}
+	/* Return (Enter) key */
+	else if (key == 13)
+	{
+		lui_textbox_insert_char(g_active_txtbox, '\n');
+		// lui_textbox_set_caret_index(g_active_txtbox, ++caret_index);
+	}
+	/* Backspace key */
+	else if (key == 8)
+	{
+		if (caret_index > 0)
+		{
+			lui_textbox_set_caret_index(g_active_txtbox, --caret_index);
+			lui_textbox_delete_char(g_active_txtbox);
+		}
+	}
+	/* Escape key */
+	else if (key == 27)
+	{
+		lui_textbox_exit_edit_mode(g_active_txtbox);
+	}
+}
+
+void glut_process_spcl_keys(int key, int x, int y)
+{
+	// fprintf(stderr, "		KEY: %d\n", key);
+	if (!g_active_txtbox)
+		return;
+
+	uint16_t caret_index = lui_textbox_get_caret_index(g_active_txtbox);
+
+	if (key == GLUT_KEY_LEFT)
+	{
+		if (caret_index > 0)
+			lui_textbox_set_caret_index(g_active_txtbox, --caret_index);
+	}
+	else if (key == GLUT_KEY_RIGHT)
+	{
+		lui_textbox_set_caret_index(g_active_txtbox, ++caret_index);
 	}
 }
 
