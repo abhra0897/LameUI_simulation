@@ -49,7 +49,6 @@ void lameui_input_read_cb (lui_touch_input_data_t *input);
 void lameui_draw_pixels_cb (uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t color);
 void lameui_draw_disp_buff_cb (uint16_t* disp_buff, lui_area_t* area);
 void lameui_input_read_cb (lui_touch_input_data_t *input);
-void lameui_render_cmplt_cb();
 /* End LameUI callbacks ------------------------------------------------------------ */
 
 /* opengl functions. Not specific to LameUI ---------------------------------------- */
@@ -59,9 +58,9 @@ void gl_init();
 /* glut callback functions. These are not LameUI specific -------------------------- */
 void glutDisplay();
 void glutIdle();
-void glutMouseMove(int x, int y);
-void glutMousePressMove(int x, int y);
-void glutMousePress(int button, int state, int x, int y);
+void glut_mouse_move(int x, int y);
+void glut_mouse_press_move(int x, int y);
+void glut_mouse_press(int button, int state, int x, int y);
 /* End glut callbacks --------------------------------------------------------------- */
 
 
@@ -141,9 +140,9 @@ int main (int argc, char** argv)
 	/*-----------------------------------------------------------------------------------
 	 -		Glut related functions for drawing and input handling						-
 	 -----------------------------------------------------------------------------------*/
-	glutMouseFunc(glutMousePress);		// to handle mouse press while not being moved
-	glutMotionFunc(glutMousePressMove);	// to handle mouse movement while being clicked
-	glutPassiveMotionFunc(glutMouseMove);	// to handle mouse movement while NOT being pressed
+	glutMouseFunc(glut_mouse_press);		// to handle mouse press while not being moved
+	glutMotionFunc(glut_mouse_press_move);	// to handle mouse movement while being clicked
+	glutPassiveMotionFunc(glut_mouse_move);	// to handle mouse movement while NOT being pressed
 	glutIdleFunc(glutIdle);
 	glutDisplayFunc(glutDisplay);
 	glutMainLoop();
@@ -189,37 +188,34 @@ void lameui_draw_disp_buff_cb (uint16_t* disp_buff, lui_area_t* area)
     uint16_t temp_x;
     uint16_t temp_y;
 
+    glBegin(GL_POINTS);
+
     // Prepare the display buffer
     // After the loop ends, the prepared buffer is flushed
-    for (temp_y = area->y; temp_y < area->y + area->h; temp_y++)
+    for (temp_y = area->y; temp_y <= area->y + area->h - 1; temp_y++)
     {
-        for (temp_x = area->x; temp_x < area->x + area->w; temp_x++)
+        for (temp_x = area->x; temp_x <= area->x + area->w - 1; temp_x++)
         {
-            GLint x = (GLint)temp_x;
-            GLint y = (GLint)temp_y;
-            // Seperating RGB565 color
-            uint8_t uint_red_5 = (*disp_buff >> 8) & 0xF8;
-            uint8_t uint_green_6 = (*disp_buff >> 3) & 0xFC;
-            uint8_t uint_blue_5 = (*disp_buff << 3);
-
-            // Normalizing value within range 0.0 to 1.0
-            GLfloat glf_red = (GLfloat)uint_red_5 / 255.0;
-            GLfloat glf_green = (GLfloat)uint_green_6 / 255.0;
-            GLfloat glf_blue = (GLfloat)uint_blue_5 / 255.0;
+            uint8_t r_lsb = (*disp_buff >> 11) & 0x1F;
+            uint8_t g_lsb = (*disp_buff >> 5) & 0x3F;
+            uint8_t b_lsb = (*disp_buff >> 0) & 0x1F;
 
             // Set the color
-            glColor3f(glf_red, glf_green, glf_blue);
-            glBegin(GL_POINTS);
-
-            // glVertex2i just draws a point on specified co-ordinate
-            glVertex2i(x, y);
-            glEnd();
+            glColor3ub(r_lsb << 3, g_lsb << 2, b_lsb << 3);
+            /**
+             * glVertex2i just draws a point on specified co-ordinate.
+             * Actual drawing is done after calling glFlush()
+             */
+            glVertex2i(temp_x, temp_y);
 
             ++disp_buff;
         }
     }
+    glEnd();
 
-    glFlush();
+    /* No need to flush here. We're flusdhing using a timer already (every 16 ms) */
+    // glFlush();
+    // // glutSwapBuffers();   /* Can be used instead of glFlush() */
 }
 
 /* This function is called back by glut when drawing is needed
@@ -234,7 +230,7 @@ void glutDisplay()
 
 /* This function is called back by glut when mouse is moved passively
 We're setting the global input variable's value here */
-void glutMouseMove(int x, int y)
+void glut_mouse_move(int x, int y)
 {	
 	UNUSED(x);
 	UNUSED(y);
@@ -248,7 +244,7 @@ void glutMouseMove(int x, int y)
 
 /* This function is called back by glut when mouse is moved while being pressed
 We're setting the global input variable's value here */
-void glutMousePressMove(int x, int y)
+void glut_mouse_press_move(int x, int y)
 {
 	g_input.x = x;
 	g_input.y = y;
@@ -256,7 +252,7 @@ void glutMousePressMove(int x, int y)
 
 /* This function is called back by glut when mouse is pressed
 This is to simulates touch input */
-void glutMousePress(int button, int state, int x, int y)
+void glut_mouse_press(int button, int state, int x, int y)
 {
 	g_input.is_pressed = 0;
 	g_input.x = -1;
