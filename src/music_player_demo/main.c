@@ -36,8 +36,9 @@
 OpenGL will use it to create a window */
 #define HOR_RES		320
 #define VERT_RES	240
+#define DISP_BUFF_PX_CNT (HOR_RES * VERT_RES)
 
-uint16_t disp_buffer[HOR_RES * 20];
+uint16_t disp_buffer[DISP_BUFF_PX_CNT];
 uint8_t memblk[20000];
 
 struct song_info {
@@ -112,10 +113,7 @@ uint32_t g_sidp_buffer_max_size = HOR_RES * VERT_RES;
 
 /* LameUI callbacks --------------------------------------------------------------- */
 void lameui_input_read_cb (lui_touch_input_data_t *input);
-void lameui_draw_pixels_cb (uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t color);
 void lameui_draw_disp_buff_cb (uint16_t* disp_buff, lui_area_t* area);
-void lameui_input_read_cb (lui_touch_input_data_t *input);
-void lameui_render_cmplt_cb();
 
 void song_progress_timer_cb(int val);
 void play_btn_cb(lui_obj_t* obj);
@@ -129,15 +127,15 @@ void slider_change_cb(lui_obj_t* obj);
 /* End LameUI callbacks ------------------------------------------------------------ */
 
 /* opengl functions. Not specific to LameUI ---------------------------------------- */
-void gl_init();
+void gl_init(int argc, char** argv);
 /* End opengl function ------------------------------------------------------------- */
 
 /* glut callback functions. These are not LameUI specific -------------------------- */
 void glutDisplay();
 void glutIdle();
-void glutMouseMove(int x, int y);
-void glutMousePressMove(int x, int y);
-void glutMousePress(int button, int state, int x, int y);
+void glut_mouse_move(int x, int y);
+void glut_mouse_press_move(int x, int y);
+void glut_mouse_press(int button, int state, int x, int y);
 void glutRedisplayTimer(int value);
 
 /* End glut callbacks --------------------------------------------------------------- */
@@ -152,20 +150,8 @@ void set_current_song(uint8_t song_index);
 
 int main (int argc, char** argv)
 {
-	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-
-	/* giving window size in X- and Y- direction
-	pading in both sides
-	glutInitWindowSize(HOR_RES + (PADDING * 2), VERT_RES + (PADDING * 2)); */
-	glutInitWindowSize(HOR_RES, VERT_RES);
-	glutInitWindowPosition(0, 0);
-
-	/* Giving name to window */
-	glutCreateWindow("LameUI Simulator");
-
 	/* Initialize opengl */
-	gl_init();	
+	gl_init(argc, argv);	
 
 	/*###################################################################################
 	 #		Starts LameUI Based Code. The Below Part Is Hardware/Platform Agnostic		#
@@ -179,9 +165,8 @@ int main (int argc, char** argv)
 	lui_dispdrv_t* my_display_driver = lui_dispdrv_create();
 	lui_dispdrv_register(my_display_driver);
 	lui_dispdrv_set_resolution(my_display_driver, HOR_RES, VERT_RES);
-	lui_dispdrv_set_draw_pixels_area_cb(my_display_driver, lameui_draw_pixels_cb);
-	lui_dispdrv_set_render_complete_cb(my_display_driver, lameui_render_cmplt_cb);
-    lui_dispdrv_set_disp_buff(my_display_driver, disp_buffer, HOR_RES*20);
+	lui_dispdrv_set_draw_disp_buff_cb(my_display_driver, lameui_draw_disp_buff_cb);
+    lui_dispdrv_set_disp_buff(my_display_driver, disp_buffer, DISP_BUFF_PX_CNT);
     lui_dispdrv_set_draw_disp_buff_cb(my_display_driver, lameui_draw_disp_buff_cb);
 
 	lui_touch_input_dev_t* my_input_device = lui_touch_inputdev_create();
@@ -440,9 +425,9 @@ int main (int argc, char** argv)
 	 -----------------------------------------------------------------------------------*/
     glutTimerFunc(0, glutRedisplayTimer, 0);
     glutTimerFunc(0, song_progress_timer_cb, 0);
-	glutMouseFunc(glutMousePress);		// to handle mouse press while not being moved
-	glutMotionFunc(glutMousePressMove);	// to handle mouse movement while being clicked
-	glutPassiveMotionFunc(glutMouseMove);	// to handle mouse movement while NOT being pressed
+	glutMouseFunc(glut_mouse_press);		// to handle mouse press while not being moved
+	glutMotionFunc(glut_mouse_press_move);	// to handle mouse movement while being clicked
+	glutPassiveMotionFunc(glut_mouse_move);	// to handle mouse movement while NOT being pressed
 	// glutIdleFunc(glutIdle);
 	glutDisplayFunc(glutDisplay);
 	glutMainLoop();
@@ -602,25 +587,36 @@ void format_time_str(uint16_t duration, char* time_ela_str)
 }
 
 /* Initialize OpenGL */
-void gl_init()
+void gl_init(int argc, char** argv)
 {
+    glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+
+	/* giving window size in X- and Y- direction
+	pading in both sides
+	glutInitWindowSize(HOR_RES + (PADDING * 2), VERT_RES + (PADDING * 2)); */
+	glutInitWindowSize(HOR_RES, VERT_RES);
+	glutInitWindowPosition(0, 0);
+
+	/* Giving name to window */
+	glutCreateWindow("LameUI Simulator");
+    
 	// making background color black as first
 	// 3 arguments all are 0.0
 	glClearColor(0.0, 0.0, 0.0, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// breadth of picture boundary is 1 pixel
 	glPointSize(1.0);
+
+     // set up orthographic projection
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-
 	// setting window dimension in X- and Y- direction
 	//gluOrtho2D(-25, HOR_RES+25, VERT_RES+25, -25);
-	gluOrtho2D(-1, HOR_RES - 1, VERT_RES - 1, -1);
+	gluOrtho2D(0, HOR_RES, VERT_RES, 0);
 
-	// Clear everything
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	glFlush();
+    glFlush();
 }
 
 /* Read input from an input device
@@ -634,18 +630,12 @@ void lameui_input_read_cb (lui_touch_input_data_t *input)
 	//printf("[DEBUG] void lameui_input_read_cb(). x:%d\ty: %d\n", input->y, input->x);
 }
 
-/* Flush the current buffer when this callback is called by LameUI.
-Using this, no need to flush every time set_pixel_cb is called. Rather buffer it and flush all together */
-void lameui_render_cmplt_cb()
-{
-	glFlush();
-	g_disp_buffer_counter = 0; //reset the counter
-}
-
 void lameui_draw_disp_buff_cb (uint16_t* disp_buff, lui_area_t* area)
 {
     uint16_t temp_x;
     uint16_t temp_y;
+
+    glBegin(GL_POINTS);
 
     // Prepare the display buffer
     // After the loop ends, the prepared buffer is flushed
@@ -653,91 +643,28 @@ void lameui_draw_disp_buff_cb (uint16_t* disp_buff, lui_area_t* area)
     {
         for (temp_x = area->x; temp_x <= area->x + area->w - 1; temp_x++)
         {
-            GLint x = (GLint)temp_x;
-            GLint y = (GLint)temp_y;
-            // Seperating RGB565 color
-            uint8_t uint_red_5 = (*disp_buff >> 8) & 0xF8;
-            uint8_t uint_green_6 = (*disp_buff >> 3) & 0xFC;
-            uint8_t uint_blue_5 = (*disp_buff << 3);
-
-            // Normalizing value within range 0.0 to 1.0
-            GLfloat glf_red = (GLfloat)uint_red_5 / 255.0;
-            GLfloat glf_green = (GLfloat)uint_green_6 / 255.0;
-            GLfloat glf_blue = (GLfloat)uint_blue_5 / 255.0;
+            uint8_t r_lsb = (*disp_buff >> 11) & 0x1F;
+            uint8_t g_lsb = (*disp_buff >> 5) & 0x3F;
+            uint8_t b_lsb = (*disp_buff >> 0) & 0x1F;
 
             // Set the color
-            glColor3f(glf_red, glf_green, glf_blue);
-            glBegin(GL_POINTS);
-
-            // glVertex2i just draws a point on specified co-ordinate
-            glVertex2i(x, y);
-            glEnd();
+            glColor3ub(r_lsb << 3, g_lsb << 2, b_lsb << 3);
+            /**
+             * glVertex2i just draws a point on specified co-ordinate.
+             * Actual drawing is done after calling glFlush()
+             */
+            glVertex2i(temp_x, temp_y);
 
             ++disp_buff;
         }
     }
+    glEnd();
 
-    glFlush();
-
-    
+    /* No need to flush here. We're flusdhing using a timer already (every 16 ms) */
+    // glFlush();
+    // // glutSwapBuffers();   /* Can be used instead of glFlush() */
 }
 
-/* Draw an area of pixels in one go.
-This is faster because the opengl buffer is filled using a loop,
-and then the preapred buffer is fflushed in one go */
-void lameui_draw_pixels_cb (uint16_t p_x, uint16_t p_y, uint16_t p_width, uint16_t p_height, uint16_t p_color)
-{
-	uint16_t temp_x;
-	uint16_t temp_y;
-
-	// Seperating RGB565 color
-	uint8_t uint_red_5 = (p_color >> 8) & 0xF8;
-	uint8_t uint_green_6 = (p_color >> 3) & 0xFC;
-	uint8_t uint_blue_5 = (p_color << 3);
-
-	// Normalizing value within range 0.0 to 1.0
-	GLfloat glf_red = (GLfloat)uint_red_5 / 255.0;
-	GLfloat glf_green = (GLfloat)uint_green_6 / 255.0;
-	GLfloat glf_blue = (GLfloat)uint_blue_5 / 255.0;
-
-	// Set the color
-	glColor3f(glf_red, glf_green, glf_blue);
-
-	// Prepare the display buffer
-	// After the loop ends, the prepared buffer is flushed
-	for (temp_y = p_y; temp_y <= p_y + p_height - 1; temp_y++)
-	{
-		for (temp_x = p_x; temp_x <= p_x + p_width - 1; temp_x++)
-		{
-			GLint x = (GLint)temp_x;
-			GLint y = (GLint)temp_y;
-
-			glBegin(GL_POINTS);
-
-			// glVertex2i just draws a point on specified co-ordinate
-			glVertex2i(x, y);
-			glEnd();
-
-			// increase the buffer counter
-			g_disp_buffer_counter++;
-
-			// If size reached max buffer size, flush it now
-			if (g_disp_buffer_counter >= g_sidp_buffer_max_size)
-			{
-				glFlush();
-				g_disp_buffer_counter = 0; //reset the counter
-			}
-		}
-	}
-
-	// If size reached max buffer size, flush it now
-	if (g_disp_buffer_counter >= g_sidp_buffer_max_size)
-	{
-		glFlush();
-		g_disp_buffer_counter = 0; //reset the counter
-	}
-	
-}
 
 /* This function is called back by glut when drawing is needed
 Here we call our render function */
@@ -751,7 +678,7 @@ void glutDisplay()
 
 /* This function is called back by glut when mouse is moved passively
 We're setting the global input variable's value here */
-void glutMouseMove(int x, int y)
+void glut_mouse_move(int x, int y)
 {	
 	UNUSED(x);
 	UNUSED(y);
@@ -765,7 +692,7 @@ void glutMouseMove(int x, int y)
 
 /* This function is called back by glut when mouse is moved while being pressed
 We're setting the global input variable's value here */
-void glutMousePressMove(int x, int y)
+void glut_mouse_press_move(int x, int y)
 {
     g_input.is_pressed = 0;
 	g_input.x = x;
@@ -774,7 +701,7 @@ void glutMousePressMove(int x, int y)
 
 /* This function is called back by glut when mouse is pressed
 This is to simulates touch input */
-void glutMousePress(int button, int state, int x, int y)
+void glut_mouse_press(int button, int state, int x, int y)
 {
 	g_input.is_pressed = 0;
 	g_input.x = -1;
