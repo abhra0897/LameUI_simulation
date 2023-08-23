@@ -43,9 +43,9 @@ void gl_init();
 // glut callback functions. These are not LameUI specific --------------------------
 void glutDisplay();
 void glutIdle();
-void glutMouseMove(int x, int y);
-void glutMousePressMove(int x, int y);
-void glutMousePress(int button, int state, int x, int y);
+void glut_mouse_move(int x, int y);
+void glut_mouse_press_move(int x, int y);
+void glut_mouse_press(int button, int state, int x, int y);
 // End glut callbacks ---------------------------------------------------------------
 
 
@@ -164,7 +164,7 @@ void glutDisplay()
 
 // This function is called back by glut when mouse is moved passively
 // We're setting the global input variable's value here
-void glutMouseMove(int x, int y)
+void glut_mouse_move(int x, int y)
 {
 	//printf ("[DEBUG] void myMouse( int x: %d, int y: %d )\n", x, y);			//send all output to screen
 
@@ -176,7 +176,7 @@ void glutMouseMove(int x, int y)
 
 // This function is called back by glut when mouse is moved while being pressed
 // We're setting the global input variable's value here
-void glutMousePressMove(int x, int y)
+void glut_mouse_press_move(int x, int y)
 {
 	g_input.x = x;
 	g_input.y = y;
@@ -184,7 +184,7 @@ void glutMousePressMove(int x, int y)
 
 // This function is called back by glut when mouse is pressed
 // This is to simulates touch input
-void glutMousePress(int button, int state, int x, int y)
+void glut_mouse_press(int button, int state, int x, int y)
 {
 	g_input.is_pressed = 0;
 	g_input.x = -1;
@@ -301,9 +301,9 @@ int main (int argc, char** argv)
 	/*-----------------------------------------------------------------------------------
 	 -		Glut related functions for drawing and input handling						-
 	 -----------------------------------------------------------------------------------*/
-	glutMouseFunc(glutMousePress);		// to handle mouse press while not being moved
-	glutMotionFunc(glutMousePressMove);	// to handle mouse movement while being clicked
-	glutPassiveMotionFunc(glutMouseMove);	// to handle mouse movement while NOT being pressed
+	glutMouseFunc(glut_mouse_press);		// to handle mouse press while not being moved
+	glutMotionFunc(glut_mouse_press_move);	// to handle mouse movement while being clicked
+	glutPassiveMotionFunc(glut_mouse_move);	// to handle mouse movement while NOT being pressed
 	glutIdleFunc(glutIdle);
 	glutDisplayFunc(glutDisplay);
 	glutMainLoop();

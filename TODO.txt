@@ -10,3 +10,4 @@
 - Update all docs (and README + Mainpage) as per new breaking changes
 - Speed up glyph rendering and mono transparent bitmap rendering by making it more efficient
 - Handle clicking on blank area on a list
+- Implement clipping area (mostly done)

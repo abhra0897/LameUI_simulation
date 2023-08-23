@@ -26,7 +26,7 @@
 #define DISP_BUFF_PX_CNT (HOR_RES * VERT_RES)
 
 uint16_t disp_buffer[DISP_BUFF_PX_CNT];
-uint8_t memblk[20000];
+uint8_t memblk[20*1024];
 
 // following UI elements are made global so we can access them in the event handler
 lui_touch_input_data_t g_input = 
@@ -56,7 +56,8 @@ lui_obj_t* btngrid_numpad;
 
 lui_obj_t* g_active_txtbox = NULL;
 
-double g_points[50][2];
+#define CHART_POINTS	30	//721 max. After that core dump! Why?
+double g_points[CHART_POINTS][2];
 char g_btn_press_cnt[4] = {0};// For same reason as above
 uint16_t g_btn_press_cnt_int = 0;
 
@@ -123,7 +124,7 @@ int main (int argc, char** argv)
 	//----------------------------------------------------------
 	//create and add scenes
 	g_scene_one = lui_scene_create();
-	lui_scene_set_bitmap_image(g_scene_one, &BITMAP_grad_color1_bg);
+	// lui_scene_set_bitmap_image(g_scene_one, &BITMAP_grad_color1_bg);
 	//lui_object_set_bg_color(0, g_scene_one);
 	//lui_scene_set_font(g_scene_one, &font_microsoft_16);
 	//g_scene_one = lui_scene_destroy(g_scene_one);	// For destroying, assigning the return value is mandatory
@@ -152,22 +153,22 @@ int main (int argc, char** argv)
 	//lui_object_set_area(lbl_heading, HOR_RES, 20);
 	lui_object_set_bg_color(lbl_heading, LUI_STYLE_BUTTON_BG_COLOR);
 	lui_label_set_text_color(lbl_heading, lui_rgb(238, 238, 238));
-	lui_object_set_border_visibility(lbl_heading, 1);
+	lui_object_set_border_width(lbl_heading, 1);
 
 	
 	//----------------------------------------------------------
 	//Prepare some data for a graph
-	prepare_chart_data_2(10);
+	prepare_chart_data_2(0);
 	
 	//----------------------------------------------------------
 	//create a line chart with above data
 	g_grph = lui_linechart_create();
 	lui_object_add_to_parent(g_grph, g_scene_one);
-	lui_linechart_set_data_source(g_grph, (double* )&g_points, 50);
-	//lui_linechart_set_data_range(g_grph, -4, 4);
+	lui_linechart_set_data_source(g_grph, (double* )&g_points, CHART_POINTS);
+// 	lui_linechart_set_data_range(g_grph, -1.2, 1.2);
 	lui_object_set_position(g_grph, 20, 60);
 	lui_object_set_area(g_grph, 440, 200);
-
+	lui_linechart_set_point_color(g_grph, LUI_RGB(255, 0, 50));
 
 	//----------------------------------------------------------
 
@@ -185,7 +186,7 @@ int main (int argc, char** argv)
 	lui_object_set_x_pos(g_lbl_cntr_value, 85);
 	lui_object_set_y_pos(g_lbl_cntr_value, 270);
 	lui_object_set_area(g_lbl_cntr_value, 110, 54);
-	lui_object_set_border_visibility(g_lbl_cntr_value, 1);
+	lui_object_set_border_width(g_lbl_cntr_value, 1);
 
 
 	//create two buttons. One for count up, another for reset
@@ -203,6 +204,7 @@ int main (int argc, char** argv)
 	lui_button_set_label_text(g_btn_reset, LUI_ICON_RELOAD " Reset");
 	lui_object_set_callback(g_btn_reset, count_and_reset_event_handler);
 
+#if 0
 
 	// group all the switches and their labels
 	lui_obj_t* panel_group_switches =  lui_panel_create();
@@ -261,7 +263,7 @@ int main (int argc, char** argv)
 	lui_label_set_text(lbl_long_text, "The quick brown fox jumps over the lazy dog The quick brown fox jumps over the lazy dog The quick brown fox jumps over the lazy dog ate my head ");
 	lui_object_set_position(lbl_long_text, 5, 470);
 	lui_object_set_area(lbl_long_text, 240, 120);
-	lui_object_set_border_visibility(lbl_long_text, 1);
+	lui_object_set_border_width(lbl_long_text, 1);
 	lui_label_set_bg_transparent(lbl_long_text, 1);
 
 	// -------------------------------------------
@@ -300,7 +302,7 @@ int main (int argc, char** argv)
 	lui_list_set_dropdown_mode(list1, 1);
 	lui_object_set_position(list1, 250, 340);
 	lui_object_set_area(list1, 215, 250);
-	lui_object_set_border_visibility(list1, 0);
+	lui_object_set_border_width(list1, 0);
 	lui_list_add_item(list1, "-- Select Language --");
 	lui_list_add_item(list1, "Algerian");
 	lui_list_add_item(list1, " Amharic ");
@@ -339,7 +341,7 @@ int main (int argc, char** argv)
 	lui_object_set_area(slider1, 180, 20);
 	lui_slider_set_range(slider1, -100, 100);
 	lui_slider_set_value(slider1, 50);
-	lui_object_set_border_visibility(slider1, 1);
+	lui_object_set_border_width(slider1, 1);
 	lui_object_set_callback(slider1, slider_event_handler);
 
 	// a label to show its value
@@ -426,7 +428,7 @@ int main (int argc, char** argv)
 	lui_object_add_to_parent(lbl_txtbox_name, g_scene_one);
 
 	lui_obj_t* txtbox_name = lui_textbox_create();
-	lui_object_set_border_visibility(txtbox_name, 1);
+	lui_object_set_border_width(txtbox_name, 1);
 	lui_object_set_callback(txtbox_name, textbox_callback);
 	char name[50];
 	lui_textbox_set_text_buffer(txtbox_name, name, 40);
@@ -434,6 +436,7 @@ int main (int argc, char** argv)
 	lui_object_add_to_parent(txtbox_name, g_scene_one);
 	lui_object_set_position(txtbox_name, 480, 85);
 	lui_object_set_area(txtbox_name, 720-490, 40);
+// 	lui_object_set_border_width(txtbox_name, 8);
 
 
 
@@ -443,11 +446,11 @@ int main (int argc, char** argv)
 	lui_object_add_to_parent(lbl_txtbox_addr, g_scene_one);
 
 	lui_obj_t* txtbox_address = lui_textbox_create();
-	lui_object_set_border_visibility(txtbox_address, 1);
+	lui_object_set_border_width(txtbox_address, 1);
 	lui_object_set_callback(txtbox_address, textbox_callback);
 	char addr[50];
 	lui_textbox_set_text_buffer(txtbox_address, addr, 40);
-	lui_textbox_insert_string(txtbox_address, "22/7 Camac Street", 17);
+	lui_textbox_insert_string(txtbox_address, "22/7 " LUI_ICON_CARET_UP LUI_ICON_CARET_DOWN " Camac Street", 17);
 	lui_object_add_to_parent(txtbox_address, g_scene_one);
 	lui_object_set_position(txtbox_address, 480, 160);
 	lui_object_set_area(txtbox_address, 720-490, 80);
@@ -460,7 +463,7 @@ int main (int argc, char** argv)
 	lui_object_add_to_parent(lbl_txtbox_age, g_scene_one);
 
 	lui_obj_t* txtbox_age = lui_textbox_create();
-	lui_object_set_border_visibility(txtbox_age, 1);
+	lui_object_set_border_width(txtbox_age, 1);
 	lui_object_set_callback(txtbox_age, textbox_callback);
 	char age[3];
 	lui_textbox_set_text_buffer(txtbox_age, age, 40);
@@ -471,7 +474,7 @@ int main (int argc, char** argv)
 
 
 	lui_obj_t* txtbox_numpad = lui_textbox_create();
-	lui_object_set_border_visibility(txtbox_numpad, 1);
+	lui_object_set_border_width(txtbox_numpad, 1);
 	lui_object_set_callback(txtbox_numpad, textbox_callback);
 	char numpad_number[50];
 	lui_textbox_set_text_buffer(txtbox_numpad, numpad_number, 40);
@@ -485,7 +488,7 @@ int main (int argc, char** argv)
 	lui_object_add_to_parent(slider_vert, g_scene_two);
 	lui_object_set_position(slider_vert, 50, 200);
 	// lui_slider_set_value(slider_vert, 33);
-
+#endif ///0
 	/*-----------------------------------------------------------------------------------
 	 -		Glut related functions for drawing and input handling						-
 	 -----------------------------------------------------------------------------------*/
@@ -566,8 +569,8 @@ void count_and_reset_event_handler(lui_obj_t* obj)
 			lui_label_set_text(g_lbl_cntr_value, g_btn_press_cnt);
 		}
 
-		prepare_chart_data_2(g_btn_press_cnt_int + 5);
-		lui_linechart_set_data_source(g_grph, (double* )&g_points, 50);
+		prepare_chart_data_2(g_btn_press_cnt_int);
+		lui_linechart_set_data_source(g_grph, (double* )&g_points, CHART_POINTS);
 	}
 }
 
@@ -854,10 +857,16 @@ void glutIdle()
 
 void prepare_chart_data_2(uint16_t sin_val)
 {
-	for (int i = 0; i < 50; i++)
+	double deg_to_rad = 3.14159265 / 180.0;
+// 	fprintf(stderr, "---------[START]----------\n");
+	for (int i = 0; i < CHART_POINTS; i++)
 	{
-		g_points[i][0] = i;		//x value of i'th element
-		//g_points[i][1] = sin((double)i+10)/((double)i+10);	//y value of i'th element
-		g_points[i][1] = sin((double)i+sin_val)/((double)i+sin_val);	//y value of i'th element
+		g_points[i][0] = i*i;		//x value of i'th element
+// 		g_points[i][1] = i * i;		//y value of i'th element
+		g_points[i][1] = sin((double)i * deg_to_rad * (double)sin_val);	//y value of i'th element
+// 		g_points[i][1] = sin((double)i+sin_val)/((double)i+sin_val);	//y value of i'th element
+
+// 		fprintf(stderr, "[RawX:%lf RawY:%lf sin:%lf mul:%lf] \n", g_points[i][0], g_points[i][1], (double)i * deg_to_rad * sin_val, (double)sin_val);
 	}
+// 	fprintf(stderr, "----------[ END ]---------\n");
 }

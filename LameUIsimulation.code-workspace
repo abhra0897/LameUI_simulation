@@ -1,5 +1,9 @@
 {
-	"folders": [],
+	"folders": [
+		{
+			"path": "."
+		}
+	],
 	"settings": {
 		"files.associations": {
 			"glut.h": "c",
